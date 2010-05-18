@@ -16,7 +16,7 @@
 # The text formula can be build with the following elements:
 # operators:
 #   -: subtract. subtracts the right side from the left side argument
-#   *, x: multiply. multiplies the left side with the right side argument
+#   *: multiply. multiplies the left side with the right side argument
 #   /: divide. divides the left side with the ride side argument
 #   +: add. adds the right side to the left side argument
 #
@@ -27,6 +27,7 @@
 #		- max: selects the biggest value from the provided values
 #		- min: selects the smallest value from the provided values
 #		- sum: creates a sum of all the provided values
+#		- avg: creates an average of all the provided values
 #
 # parenthesis:
 #   parentesis can be used to group calculation parts
@@ -46,7 +47,7 @@
 class Formula
 
 	# Known operators
-	OPERATORS = "-*/+x"
+	OPERATORS = "-*/+"
 
 	# parse the given code formula in an array using the format
 	# calculation = [operation, [parameter, parameter]]
@@ -66,7 +67,43 @@ class Formula
 
 	# executes the formula with a hash of given calculation terms
 	def call(input)
-		Formula.calculate(@calculation, input)
+		begin
+			Formula.calculate(@calculation, input)
+		rescue TypeError => e
+			raise "Error executing formula: #{Formula.calculation_to_s(@calculation, input)} : #{e.message}"
+		end
+	end
+
+	def to_string(input)
+		Formula.calculation_to_s(@calculation, input)
+	end
+
+	def self.calculation_to_s(calculation, input)
+		operation, parameters = *calculation
+
+		parameters = parameters.collect do |parameter|
+			parameter.is_a?(Array) ? "(#{calculation_to_s(parameter, input)})" : parameter
+		end
+		case operation
+			when :add,
+				:subtract,
+				:times,
+				:divide then "#{parameters[0]} #{{ :add => "+",
+																					 :subtract => "-",
+																					 :times => "*",
+																					 :divide => "/" }[operation]} #{parameters[1]}"
+			# functions:
+			when :max,
+				:min,
+				:sum,
+				:select,
+				:avg then "#{operation}(#{parameters * ","})"
+			# variables
+			when :term then "#{parameters[0]}[#{input[parameters[0]] ? input[parameters[0]] : "nil"}]"
+			# no-op
+			when nil then parameters[0].to_s
+			when :percentage then "#{parameters[0]}%"
+		end
 	end
 
 	def self.calculate(calculation, input)
@@ -76,7 +113,7 @@ class Formula
 			parameter.is_a?(Array) ? calculate(parameter, input) : parameter
 		end
 
-		#puts "executing #{operation ? operation : "no-op"} on #{parameters.inspect}"
+		return nil if (parameters[0].nil? or parameters[1].nil?) and [:add, :subtract, :times, :divide].include? operation
 
 		case operation
 			when :add then parameters[0] + parameters[1]
@@ -91,8 +128,21 @@ class Formula
 				parameters.each { |value| result += value || 0.0 }
 				result
 			end
+			when :select then begin
+				index = parameters.shift
+				index ? parameters[index] : nil
+			end
+			when :avg then begin
+				items = parameters.compact
+				result = 0.0
+				items.each { |value| result += value }
+				result / items.length
+			end
 			# variables
-			when :term then input[parameters[0]]
+			when :term then begin
+				raise "Can't find  term: #{parameters[0]}" unless input.has_key? parameters[0]
+				input[parameters[0]]
+			end
 			# no-op
 			when nil, :percentage then parameters[0].to_f
 		end
@@ -114,7 +164,7 @@ class Formula
 				operator = case char
 					when "-" then :subtract
 					when "+" then :add
-					when "*", "x" then :times
+					when "*" then :times
 					when "/" then :divide
 				end
 			else
@@ -130,6 +180,7 @@ class Formula
 	end
 
 	def self.parse_definition(code)
+		code = code.strip
 		# parse percentages 100%, 10%
 		if result = code.match(/\A(\d+)%\z/)
 			return :percentage, [1.0 / 3.0] if result[1].to_i == 33
@@ -137,8 +188,8 @@ class Formula
 			return :percentage, [result[1].to_i / 100.0]
 
 		# parse function calls in the format FUNCTION(parameters)
-		elsif result = code.match(/\A([A-Z_]+)\((.+)\)\z/)
-			return result[1].downcase.to_sym, result[2].split(",").collect { |parameter| parse_operation(parameter) }
+		elsif result = code.match(/\A([A-Z_]+)\((.+)/m)
+			return result[1].downcase.to_sym, self.parameterize(result[2][0 .. -2]).collect { |parameter| parse_operation(parameter) }
 
 		# parse numeric value
 		elsif code.to_i.to_s == code
@@ -178,6 +229,32 @@ class Formula
 			char_index += 1
 		end
 		code
+	end
+
+	#
+	# SUM(1, 2), SELECT(1, 2, 3)
+	def self.parameterize(code)
+		result = []
+		# since we know the first character is an opening parenthesis,
+		# start parsing at the second character, and assume grouping level 1
+		current_param = ""
+		group_level, char_index = 0, 0
+		while char_index < code.length
+			char = code[char_index, 1]
+			group_level += 1 if char == "("
+			group_level -= 1 if char == ")"
+
+			if char == "," and group_level == 0
+			  result << current_param
+				current_param = ""
+			else
+				current_param << char
+			end
+
+			char_index += 1
+		end
+		result
+
 	end
 
 end

@@ -19,6 +19,7 @@ class ScoringResult
 	def plot_data question_data, result_row
 		return if question_data[:matrix_conversion].nil? or question_data[:indicator_conversion].nil? # no scoring known for this question
 
+		handle_cloud_answer question_data, result_row if question_data[:question_type] == "cloud" 
 		handle_single_answer question_data, result_row if question_data[:question_type] == "1 antwoord"
 		handle_dummy_answer question_data, result_row if question_data[:question_type] == "dummy"
 		handle_formula_answer question_data, result_row if question_data[:question_type] == "verdeel punten"
@@ -47,17 +48,17 @@ class ScoringResult
 		answer_with_score = question_data[:answer_scoring][value.to_i - 1]
 		raise "Picked answer has no assigned score '#{question_data[:question]}' picked: #{value} for #{result_data[:meta_data][:full_name]}" if answer_with_score.nil?
 
-		sustainability_score = convert_score_text answer_with_score
+		sustainability_score, score_type = convert_score_text answer_with_score
 		return if sustainability_score.nil? # no opinion / don't know
 
-		add_scores result_data[:meta_data], question_data, sustainability_score
+		add_scores result_data[:meta_data], question_data, sustainability_score, score_type, nil
 	end
 
 	def handle_dummy_answer question_data, result_data
 		value = result_data[:question_data][question_data[:question_id]]
 		return if value.nil? # question is not answered.
 
-		add_scores result_data[:meta_data], question_data, value.to_i
+		add_scores result_data[:meta_data], question_data, value.to_i, :numeric, nil
 	end
 
 	def handle_formula_answer question_data, result_data, options = {}
@@ -82,13 +83,21 @@ class ScoringResult
 		end
 
 		sustainability_score = formula.call calculation_data
-		raise "Error in formula" if sustainability_score.nil? 
+		return if sustainability_score.nil? 
 		#return if sustainability_score.nil? # no opinion / don't know
+		comment = "#{sustainability_score} = #{formula.to_string(calculation_data)}"
 
-		add_scores result_data[:meta_data], question_data, sustainability_score
+		add_scores result_data[:meta_data], question_data, sustainability_score, :numeric, comment
 	end
 
-	def add_scores(meta_data, question_data, question_score)
+	def handle_cloud_answer question_data, result_data, options = {}
+		value = result_data[:question_data][question_data[:question_id]]
+		return if value.nil? # question is not answered.
+		
+		add_scores result_data[:meta_data], question_data, value, :string, nil
+	end
+
+	def add_scores(meta_data, question_data, question_score, score_type, comment)
 		@scores << {
 			:participant => meta_data,
 			:matrix_tile => question_data[:matrix_tile],
@@ -100,41 +109,51 @@ class ScoringResult
 			:matrix_conversion => question_data[:matrix_conversion],
 			:indicator_conversion => question_data[:indicator_conversion],
 
-			:question_score => question_score
+			:question_score => question_score,
+			:score_type => score_type,
+			:comment => comment
 		}
 		@score_tree = nil
 	end
 
 	def convert_score_text text
-		return nil if text.nil?
-		return nil if text == "X"
+		return [nil, nil] if text.nil?
+		return [nil, :na] if text == "X"
 		if result = text.match(/^(-?\d+)%$/i)
-			return result[0].to_i / 100.0
+			return [result[0].to_i / 100.0, :percentage]
+		end
+		if result = text.match(/^(\d+)$/i)
+			return [result[0].to_i, :numeric]
 		end
 	end
 
 	def present_results
 		score_tree.each do |matrix, data|
 			if data[:m_rule] == :na
-				group_result = "(#{"%.2f" % data[:score]})"
+				group_result = "" #"(#{"%.2f" % data[:score]})"
 			else
 				group_result = "(#{"%.2f" % (data[:score] * 100.0)}% / 100%)"
 			end
 			puts "#{matrix} #{group_result}"
 
 			score_tree[matrix][:indicators].each do |indicator, ind_data|
-				if ind_data[:i_rule] == :na
-					group_result = "(#{"%.2f" % ind_data[:score]})"
+				if ind_data[:i_rule] == :na  or ind_data[:conversion] == :na
+					group_result = "" #"(#{"%.2f" % ind_data[:score]})"
 				else
 					group_result = "(#{"%.2f" % (ind_data[:score] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (ind_data[:conversion] * 100.0)}%)"
 				end
 				puts " - #{indicator} #{group_result}"
 				score_tree[matrix][:indicators][indicator][:questions].each do |question, q_data|
-
-					if q_data[:conversion] == :na
+					if q_data[:score_type] == :string
+						cloud_line = []
+						q_data[:cloud].each { |key, value| cloud_line << "#{key} (#{value})" }
+						group_result = "(#{ cloud_line * ", " })"
+					elsif (q_data[:conversion] == :na or q_data[:score_type] == :numeric) and q_data[:score_type] != :percentage
 						group_result = "(#{"%.2f" % q_data[:score]})"
 					else
-						group_result = "(#{"%.2f" % (q_data[:score] * q_data[:conversion] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (q_data[:conversion] * ind_data[:conversion] * 100.0)}% uit #{q_data[:amount]})"
+						factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) * 
+							(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
+						group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]})"
 					end
 
 					puts "   - #{question.gsub("\n", " ")} #{group_result}"
@@ -142,6 +161,7 @@ class ScoringResult
 			end
 		end
 	end
+	
 
 	def merge other_result
 		@scores += other_result.scores
@@ -174,18 +194,31 @@ class ScoringResult
 					:question_type => participant_question_score[:question_type],
 					:matrix_conversion => participant_question_score[:matrix_conversion],
 					:indicator_conversion => participant_question_score[:indicator_conversion],
+					:score_type => participant_question_score[:score_type],
 
 					:scores => @scores.collect do |score_row|
 						score_row[:question_score] if score_row[:question_id] == q_id
+					end.compact,
+					:comments => @scores.collect do |score_row|
+						score_row[:commment] if score_row[:question_id] == q_id
 					end.compact
 				}
-				question_scores[q_id][:amount] = question_scores[q_id][:scores].length 
-				sum = 0
-				question_scores[q_id][:scores].each { |score| sum += score  }				
-				question_scores[q_id][:average] = sum / question_scores[q_id][:amount]
+				question_scores[q_id][:amount] = question_scores[q_id][:scores].length
+				if participant_question_score[:question_type] == "cloud"
+					cloud = {}
+					question_scores[q_id][:scores].each do |term|
+						cloud_term = term.downcase
+						cloud.has_key?(cloud_term) ? cloud[cloud_term] += 1 : cloud[cloud_term] = 1
+					end
+					question_scores[q_id][:cloud] = cloud
+				else
+					sum = 0.0
+					question_scores[q_id][:scores].each { |score| sum += score  }
+					question_scores[q_id][:average] = sum / question_scores[q_id][:amount]
+				end
 			end
 		end
-		puts question_scores.inspect
+		#puts question_scores.inspect
 		tree = {}
 		question_scores.each do |key, data|
 			tree[data[:matrix_tile]] ||= { :indicators => {}, :score => 0.0, :m_rule => data[:matrix_conversion] }
@@ -193,8 +226,10 @@ class ScoringResult
 			tree[data[:matrix_tile]][:indicators][data[:indicator]][:questions][data[:question]] = {
 				:score => data[:average],
 				:results => data[:scores],
+				:cloud => data[:cloud],
 				:conversion => data[:indicator_conversion],
 				:question_type => data[:question_type],
+				:score_type => data[:score_type],
 				:amount => data[:amount]
 			}
 		end
@@ -208,7 +243,7 @@ class ScoringResult
 						when :na then question_data[:score]
 						when Float then question_data[:score] * question_data[:conversion]
 					end
-					i_score += converted_score unless question_data[:question_type] == "dummy"
+					i_score += converted_score unless ["dummy", "cloud"].include? question_data[:question_type] 
 				end
 				tree[key][:indicators][indicator][:score] = i_score
 
