@@ -28,6 +28,7 @@
 #		- min: selects the smallest value from the provided values
 #		- sum: creates a sum of all the provided values
 #		- avg: creates an average of all the provided values
+#		- select: selects the value with the index of the rirst parameter
 #
 # parenthesis:
 #   parentesis can be used to group calculation parts
@@ -82,16 +83,16 @@ class Formula
 		operation, parameters = *calculation
 
 		parameters = parameters.collect do |parameter|
-			parameter.is_a?(Array) ? "(#{calculation_to_s(parameter, input)})" : parameter
+			parameter.is_a?(Array) ? "#{calculation_to_s(parameter, input)}" : parameter
 		end
 		case operation
 			when :add,
 				:subtract,
 				:times,
-				:divide then "#{parameters[0]} #{{ :add => "+",
+				:divide then "(#{parameters[0]} #{{ :add => "+",
 																					 :subtract => "-",
 																					 :times => "*",
-																					 :divide => "/" }[operation]} #{parameters[1]}"
+																					 :divide => "/" }[operation]} #{parameters[1]})"
 			# functions:
 			when :max,
 				:min,
@@ -102,7 +103,7 @@ class Formula
 			when :term then "#{parameters[0]}[#{input[parameters[0]] ? input[parameters[0]] : "nil"}]"
 			# no-op
 			when nil then parameters[0].to_s
-			when :percentage then "#{parameters[0]}%"
+			when :percentage then "#{parameters[0] * 100.0}%"
 		end
 	end
 
@@ -130,7 +131,7 @@ class Formula
 			end
 			when :select then begin
 				index = parameters.shift
-				index ? parameters[index] : nil
+				index ? parameters[index - 1] : nil
 			end
 			when :avg then begin
 				items = parameters.compact
@@ -188,7 +189,7 @@ class Formula
 			return :percentage, [result[1].to_i / 100.0]
 
 		# parse function calls in the format FUNCTION(parameters)
-		elsif result = code.match(/\A([A-Z_]+)\((.+)/m)
+		elsif result = code.match(/\A([A-Z_]+)\((.+)\)\z/m)
 			return result[1].downcase.to_sym, self.parameterize(result[2][0 .. -2]).collect { |parameter| parse_operation(parameter) }
 
 		# parse numeric value

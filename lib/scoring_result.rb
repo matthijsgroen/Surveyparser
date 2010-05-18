@@ -157,6 +157,10 @@ class ScoringResult
 					end
 
 					puts "   - #{question.gsub("\n", " ")} #{group_result}"
+
+					(q_data[:comments] || []).each do |comment|
+						puts "      - #{comment}"
+					end
 				end
 			end
 		end
@@ -200,7 +204,7 @@ class ScoringResult
 						score_row[:question_score] if score_row[:question_id] == q_id
 					end.compact,
 					:comments => @scores.collect do |score_row|
-						score_row[:commment] if score_row[:question_id] == q_id
+						score_row[:comment] if score_row[:question_id] == q_id
 					end.compact
 				}
 				question_scores[q_id][:amount] = question_scores[q_id][:scores].length
@@ -227,6 +231,7 @@ class ScoringResult
 				:score => data[:average],
 				:results => data[:scores],
 				:cloud => data[:cloud],
+				:comments => data[:comments],
 				:conversion => data[:indicator_conversion],
 				:question_type => data[:question_type],
 				:score_type => data[:score_type],
