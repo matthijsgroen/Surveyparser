@@ -2,4 +2,4 @@
 config/*.csv
 config/*.xlsx
 resultaat.txt
-result.html
+*.html

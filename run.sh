@@ -8,7 +8,7 @@ require 'pp'
 
 result_parser = ResultParser.new \
   "config/test4-vragen.csv",
-  "config/paneltest2.csv"
+  "config/paneltest2-ingevult.csv"
 
 results = result_parser.parse_results
 merged_result = ScoringResult.merge results
