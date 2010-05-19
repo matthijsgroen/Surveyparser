@@ -52,9 +52,7 @@ class ResultParser
 
 			@results << @scoring_configuration.parse_results(data_hash)
 		end
-
-		@merged_result = ScoringResult.merge @results
-		@merged_result.present_results
+		@results
 	end
 
 end

@@ -19,11 +19,14 @@ class ScoringResult
 	def plot_data question_data, result_row
 		return if question_data[:matrix_conversion].nil? or question_data[:indicator_conversion].nil? # no scoring known for this question
 
-		handle_cloud_answer question_data, result_row if question_data[:question_type] == "cloud" 
-		handle_single_answer question_data, result_row if question_data[:question_type] == "1 antwoord"
-		handle_dummy_answer question_data, result_row if question_data[:question_type] == "dummy"
-		handle_formula_answer question_data, result_row if question_data[:question_type] == "verdeel punten"
-		handle_formula_answer question_data, result_row, { :no_score => true } if question_data[:question_type] == "meta berekening"
+		case question_data[:question_type]
+			when "cloud" then handle_cloud_answer question_data, result_row
+			when "1 antwoord" then handle_single_answer question_data, result_row
+			when "dummy" then handle_dummy_answer question_data, result_row
+			when "verdeel punten" then handle_formula_answer question_data, result_row
+			when "meta berekening" then handle_formula_answer question_data, result_row, :no_score => true
+			else puts "Geen support voor vragentype: #{question_data[:question_type]}"
+		end
 	end
 
 	#	Autonomie
@@ -82,10 +85,14 @@ class ScoringResult
 			end
 		end
 
-		sustainability_score = formula.call calculation_data
-		return if sustainability_score.nil? 
+		begin
+			sustainability_score = formula.call calculation_data
+		rescue
+			puts "Error doing calculation: #{formula.to_string calculation_data}"
+		end
+		return if sustainability_score.nil?
 		#return if sustainability_score.nil? # no opinion / don't know
-		comment = "#{sustainability_score} = #{formula.to_string(calculation_data)}"
+		comment = "#{sustainability_score} = #{formula.solve(calculation_data)}"
 
 		add_scores result_data[:meta_data], question_data, sustainability_score, :numeric, comment
 	end
@@ -97,7 +104,7 @@ class ScoringResult
 		add_scores result_data[:meta_data], question_data, value, :string, nil
 	end
 
-	def add_scores(meta_data, question_data, question_score, score_type, comment)
+	def add_scores meta_data, question_data, question_score, score_type, comment
 		@scores << {
 			:participant => meta_data,
 			:matrix_tile => question_data[:matrix_tile],
@@ -127,45 +134,132 @@ class ScoringResult
 		end
 	end
 
-	def present_results
+	def as_s(*args)
+		result = ""
 		score_tree.each do |matrix, data|
-			if data[:m_rule] == :na
-				group_result = "" #"(#{"%.2f" % data[:score]})"
-			else
-				group_result = "(#{"%.2f" % (data[:score] * 100.0)}% / 100%)"
-			end
-			puts "#{matrix} #{group_result}"
-
-			score_tree[matrix][:indicators].each do |indicator, ind_data|
-				if ind_data[:i_rule] == :na  or ind_data[:conversion] == :na
-					group_result = "" #"(#{"%.2f" % ind_data[:score]})"
+			if args.include? matrix or args.empty?
+				if data[:m_rule] == :na
+					group_result = "" #"(#{"%.2f" % data[:score]})"
 				else
-					group_result = "(#{"%.2f" % (ind_data[:score] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (ind_data[:conversion] * 100.0)}%)"
+					group_result = "(#{"%.2f" % (data[:score] * 100.0)}% / 100%)"
 				end
-				puts " - #{indicator} #{group_result}"
-				score_tree[matrix][:indicators][indicator][:questions].each do |question, q_data|
-					if q_data[:score_type] == :string
-						cloud_line = []
-						q_data[:cloud].each { |key, value| cloud_line << "#{key} (#{value})" }
-						group_result = "(#{ cloud_line * ", " })"
-					elsif (q_data[:conversion] == :na or q_data[:score_type] == :numeric) and q_data[:score_type] != :percentage
-						group_result = "(#{"%.2f" % q_data[:score]})"
+				result += "#{matrix} #{group_result}\n"
+
+				score_tree[matrix][:indicators].each do |indicator, ind_data|
+					if ind_data[:i_rule] == :na  or ind_data[:conversion] == :na
+						group_result = "" #"(#{"%.2f" % ind_data[:score]})"
 					else
-						factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) * 
-							(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
-						group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]})"
+						group_result = "(#{"%.2f" % (ind_data[:score] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (ind_data[:conversion] * 100.0)}%)"
 					end
+					result += " - #{indicator} #{group_result}\n"
+					score_tree[matrix][:indicators][indicator][:questions].each do |question, q_data|
+						if q_data[:score_type] == :string
+							cloud_line = []
+							q_data[:cloud].each { |key, value| cloud_line << "#{key} (#{value})" }
+							group_result = "(#{ cloud_line * ", " })"
+						elsif (q_data[:conversion] == :na or q_data[:score_type] == :numeric) and q_data[:score_type] != :percentage
+							group_result = "(#{"%.2f" % q_data[:score]})"
+						else
+							factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) *
+								(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
+							group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]})"
+						end
 
-					puts "   - #{question.gsub("\n", " ")} #{group_result}"
+						result += "   - #{question.gsub("\n", " ")} #{group_result}\n"
 
-					(q_data[:comments] || []).each do |comment|
-						puts "      - #{comment}"
+#						(q_data[:comments] || []).each do |comment|
+#							result += "      - #{comment}\n"
+#						end
 					end
 				end
 			end
 		end
+		result
 	end
-	
+
+	def as_html(*args)
+		result = <<-EOS
+			<html>
+			<head>
+				<title>Enquete resultaat</title>
+		    <script src="javascripts/jquery.js" type="text/javascript"></script>
+		    <script src="javascripts/application.js" type="text/javascript"></script>
+    		<link href="stylesheets/application.css" media="screen" rel="stylesheet" type="text/css" />
+			</head>
+			<body>
+
+			<ul class="matrix-tiles">
+		EOS
+		score_tree.each do |matrix, data|
+			if args.include? matrix or args.empty?
+				if data[:m_rule] == :na
+					group_result = "" #"(#{"%.2f" % data[:score]})"
+				else
+					group_result = "(#{"%.2f" % (data[:score] * 100.0)}% / 100%)"
+				end
+				result += "<li><span class=\"matrix-tile\">#{matrix} #{group_result}</span>\n"
+
+				result += "<ul class=\"indicators\">"
+				score_tree[matrix][:indicators].each do |indicator, ind_data|
+					if ind_data[:i_rule] == :na  or ind_data[:conversion] == :na
+						group_result = "" #"(#{"%.2f" % ind_data[:score]})"
+					else
+						group_result = "(#{"%.2f" % (ind_data[:score] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (ind_data[:conversion] * 100.0)}%)"
+					end
+					result += "<li><span class=\"indicator\">#{indicator} #{group_result}</span>\n"
+
+					result += "<ul class=\"questions\">"
+					score_tree[matrix][:indicators][indicator][:questions].each do |question, q_data|
+						if q_data[:score_type] == :string
+							cloud_line = []
+							q_data[:cloud].each { |key, value| cloud_line << "#{key} (#{value})" }
+							group_result = "(#{ cloud_line * ", " } uit #{q_data[:amount]})"
+						elsif q_data[:score_type] == :numeric
+							group_result = "(#{"%.2f" % q_data[:score]} uit #{q_data[:amount]})"
+						else
+							factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) *
+								(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
+							group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]})"
+						end
+
+						result += "<li><span class=\"question\">#{question.gsub("\n", " ")} (#{q_data[:question_type]}) #{group_result}</span>\n"
+
+						result += "<ol class=\"scores\">"
+						(q_data[:results] || []).each_with_index do |score, index|
+							result += "<li>#{score}"
+
+							comment = (q_data[:comments] || [])[index]
+							result += "<p class=\"comment\">#{comment_to_html(comment)}</p>\n" if comment
+
+							result += "</li>\n"
+						end
+						result += "</ol>"
+
+						result += "</li>"
+					end
+					result += "</ul>"
+					result += "</li>"
+				end
+				result += "</ul>"
+				result += "</li>"
+			end
+		end
+		result += <<-EOS
+			</ul>
+			</body>
+			</html>
+		EOS
+
+		result
+	end
+
+	def comment_to_html comment
+		r = comment.gsub "(", "<span class=\"group\">(</span>"
+		r = r.gsub ")", "<span class=\"group\">)</span>"
+		r = r.gsub ",", ", "
+		r = r.gsub /\[([^\]]+)\]/, "[<span class=\"value\">\\1</span>]"
+		r
+	end
 
 	def merge other_result
 		@scores += other_result.scores

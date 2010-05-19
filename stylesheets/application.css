@@ -1,0 +1,21 @@
+body {
+  background: #eeeeee;
+  font-family: Arial, sans-serif;
+}
+
+.indicators, .questions, .scores {
+  display: none;
+}
+
+.matrix-tile {
+  font-size: 1.3em;
+}
+
+.comment .group {
+  color: red;
+  font-style: italic;
+}
+
+.comment .value {
+  font-weight: bold;
+}

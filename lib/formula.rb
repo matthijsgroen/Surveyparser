@@ -28,7 +28,8 @@
 #		- min: selects the smallest value from the provided values
 #		- sum: creates a sum of all the provided values
 #		- avg: creates an average of all the provided values
-#		- select: selects the value with the index of the rirst parameter
+#		- select: selects the value with the index of the first parameter
+#		- empty: returns 1 if the given string is empty, 0 otherwise
 #
 # parenthesis:
 #   parentesis can be used to group calculation parts
@@ -59,11 +60,8 @@ class Formula
 	end
 
 	def self.make(code)
-		# Fixup code from popular spreadsheet toos to normal ASCII variants
-		code = code.gsub("–", "-")
-
 		#puts "parsing: #{code}"
-		parse_operation(code.upcase)		
+		parse_operation(code.upcase)
 	end
 
 	# executes the formula with a hash of given calculation terms
@@ -79,36 +77,51 @@ class Formula
 		Formula.calculation_to_s(@calculation, input)
 	end
 
-	def self.calculation_to_s(calculation, input)
-		operation, parameters = *calculation
+	def solve(input)
+		Formula.calculation_to_s(@calculation, input, true)
+	end
 
-		parameters = parameters.collect do |parameter|
-			parameter.is_a?(Array) ? "#{calculation_to_s(parameter, input)}" : parameter
+	def self.calculation_to_s(calculation, input, solve = false)
+		operation, parameters = * calculation
+
+		string_parameters = parameters.collect do |parameter|
+			parameter.is_a?(Array) ? "#{calculation_to_s(parameter, input, solve)}" : parameter
 		end
 		case operation
 			when :add,
 				:subtract,
 				:times,
-				:divide then "(#{parameters[0]} #{{ :add => "+",
-																					 :subtract => "-",
-																					 :times => "*",
-																					 :divide => "/" }[operation]} #{parameters[1]})"
+				:divide then
+				"(#{string_parameters[0]} #{{:add => "+",
+																		 :subtract => "-",
+																		 :times => "*",
+																		 :divide => "/"}[operation]} #{string_parameters[1]})"
 			# functions:
 			when :max,
 				:min,
 				:sum,
 				:select,
-				:avg then "#{operation}(#{parameters * ","})"
+				:avg,
+				:empty then
+				if solve
+					result = calculate(calculation, input)
+					"#{operation}(#{string_parameters * ","})[#{result}]"
+				else
+					"#{operation}(#{string_parameters * ","})"
+				end
 			# variables
-			when :term then "#{parameters[0]}[#{input[parameters[0]] ? input[parameters[0]] : "nil"}]"
+			when :term then
+				"#{string_parameters[0]}[#{input[string_parameters[0]] ? input[string_parameters[0]] : "nil"}]"
 			# no-op
-			when nil then parameters[0].to_s
-			when :percentage then "#{parameters[0] * 100.0}%"
+			when nil then
+				string_parameters[0].to_s
+			when :percentage then
+				"#{string_parameters[0] * 100.0}%"
 		end
 	end
 
 	def self.calculate(calculation, input)
-		operation, parameters = *calculation
+		operation, parameters = * calculation
 
 		parameters = parameters.collect do |parameter|
 			parameter.is_a?(Array) ? calculate(parameter, input) : parameter
@@ -117,35 +130,51 @@ class Formula
 		return nil if (parameters[0].nil? or parameters[1].nil?) and [:add, :subtract, :times, :divide].include? operation
 
 		case operation
-			when :add then parameters[0] + parameters[1]
-			when :subtract then parameters[0] - parameters[1]
-			when :times then parameters[0] * parameters[1]
-			when :divide then parameters[0] / parameters[1]
+			when :add then
+				parameters[0] + parameters[1]
+			when :subtract then
+				parameters[0] - parameters[1]
+			when :times then
+				parameters[0] * parameters[1]
+			when :divide then
+				parameters[0] / parameters[1]
 			# functions:
-			when :max then parameters.max
-			when :min then parameters.min
-			when :sum then begin
-				result = 0.0
-				parameters.each { |value| result += value || 0.0 }
-				result
-			end
-			when :select then begin
-				index = parameters.shift
-				index ? parameters[index - 1] : nil
-			end
-			when :avg then begin
-				items = parameters.compact
-				result = 0.0
-				items.each { |value| result += value }
-				result / items.length
-			end
+			when :max then
+				parameters.max
+			when :min then
+				parameters.min
+			when :sum then
+				begin
+					result = 0.0
+					parameters.each { |value| result += value || 0.0 }
+					result
+				end
+			when :select then
+				begin
+					index = parameters.shift
+					index ? parameters[index - 1] : nil
+				end
+			when :avg then
+				begin
+					items = parameters.compact
+					result = 0.0
+					items.each { |value| result += value }
+					result / items.length
+				end
+			when :empty then
+				begin
+					item = parameters[0]
+					item.to_s.strip == "" ? 1 : 0
+				end
 			# variables
-			when :term then begin
-				raise "Can't find  term: #{parameters[0]}" unless input.has_key? parameters[0]
-				input[parameters[0]]
-			end
+			when :term then
+				begin
+					raise "Can't find  term: #{parameters[0]}" unless input.has_key? parameters[0]
+					input[parameters[0]]
+				end
 			# no-op
-			when nil, :percentage then parameters[0].to_f
+			when nil, :percentage then
+				parameters[0].to_f
 		end
 	end
 
@@ -158,15 +187,19 @@ class Formula
 		code = ungroup code
 
 		left, right, operator = "", "", nil
-		char_index,	group_level = 0, 0
+		char_index, group_level = 0, 0
 		while char_index < code.length
 			char = code[char_index, 1]
 			if !operator and OPERATORS.include? char and group_level == 0
 				operator = case char
-					when "-" then :subtract
-					when "+" then :add
-					when "*" then :times
-					when "/" then :divide
+					when "-" then
+						:subtract
+					when "+" then
+						:add
+					when "*" then
+						:times
+					when "/" then
+						:divide
 				end
 			else
 				group_level += (char == "(") ? 1 : -1 if "()".include? char
@@ -183,24 +216,24 @@ class Formula
 	def self.parse_definition(code)
 		code = code.strip
 		# parse percentages 100%, 10%
-		if result = code.match(/\A(\d+)%\z/)
-			return :percentage, [1.0 / 3.0] if result[1].to_i == 33
-			return :percentage, [2.0 / 3.0] if result[1].to_i == 66
-			return :percentage, [result[1].to_i / 100.0]
+		if result = code.match(/\A([\d\.]+)%\z/)
+			return :percentage, [1.0 / 3.0] if result[1].to_f == 33.0
+			return :percentage, [2.0 / 3.0] if result[1].to_f == 66.0
+			return :percentage, [result[1].to_f / 100.0]
 
-		# parse function calls in the format FUNCTION(parameters)
+			# parse function calls in the format FUNCTION(parameters)
 		elsif result = code.match(/\A([A-Z_]+)\((.+)\)\z/m)
-			return result[1].downcase.to_sym, self.parameterize(result[2][0 .. -2]).collect { |parameter| parse_operation(parameter) }
+			return result[1].downcase.to_sym, self.parameterize(result[2][0 .. -1]).collect { |parameter| parse_operation(parameter) }
 
-		# parse numeric value
+			# parse numeric value
 		elsif code.to_i.to_s == code
 			return nil, [code.to_i]
 
-		# parse numeric value
+			# parse numeric value
 		elsif code.to_f.to_s == code
 			return nil, [code.to_f]
 
-		# parse variable term
+			# parse variable term
 		elsif result = code.match(/\A([A-Z][A-Z0-9_]*)\z/)
 			return :term, [result[1].downcase.to_sym]
 		else
@@ -226,7 +259,7 @@ class Formula
 			group_level -= 1 if char == ")"
 
 			# only strip the first and last parenthesis if we exit the grouping AND we reached the last character
-			return  code[1 .. -2]if group_level == 0 and char_index == code.length - 1
+			return code[1 .. -2] if group_level == 0 and char_index == code.length - 1
 			char_index += 1
 		end
 		code
@@ -238,15 +271,15 @@ class Formula
 		result = []
 		# since we know the first character is an opening parenthesis,
 		# start parsing at the second character, and assume grouping level 1
-		current_param = ""
+		current_param, char = "", ""
 		group_level, char_index = 0, 0
-		while char_index < code.length
+		while char_index <= code.length
 			char = code[char_index, 1]
 			group_level += 1 if char == "("
 			group_level -= 1 if char == ")"
 
 			if char == "," and group_level == 0
-			  result << current_param
+				result << current_param
 				current_param = ""
 			else
 				current_param << char
@@ -254,8 +287,8 @@ class Formula
 
 			char_index += 1
 		end
+		result << current_param unless current_param == ""
 		result
-
 	end
 
 end

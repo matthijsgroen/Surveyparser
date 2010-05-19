@@ -7,8 +7,13 @@ require 'lib/result_parser.rb'
 require 'pp'
 
 result_parser = ResultParser.new \
-  "config/test3-vragen.csv",
+  "config/test4-vragen.csv",
   "config/paneltest2.csv"
 
-result_parser.parse_results
+results = result_parser.parse_results
+merged_result = ScoringResult.merge results
+
+File.open("result.html", 'w') do |output_file|
+  output_file.puts merged_result.as_html
+end
 

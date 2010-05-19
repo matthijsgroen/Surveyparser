@@ -10,19 +10,30 @@ class ScoringConfiguration
 		@scoring_rules = []
 
 		# Kolom lijst:
-		# "matrixvak",
-		# "score in matrixvak",
-		# "indicator",
-		# "codering",
-		# "score in indicator",
-		# "vraag",
-		# "antwoordmogelijkheid",
+		# "matrixvak"
+		# "score in matrixvak"
+		#	"indicator"
+		#	"codering"
+		#	"score in indicator (%)"
+		#	"vraag"
+		#	"antwoordmogelijkheid"
+		#	"soort"
+		#	"formule"
+		#	"e-waarde"
+
 		# Score 1 - 16
 		start_row.times do data.shift end
 		data.each do |row|
+			row = row.collect do |item|
+				if item
+					item.strip.gsub("–", "-").gsub("…", "...")
+				else
+					nil
+				end
+			end
 			matrix_tile, score_tile, indicator, question_id, indicator_score, question,
-				answers, question_type = row[0..7]
-			answer_scores = row[8..23]
+				answers, question_type, curve_formula, curve_base = row[0..9]
+			answer_scores = row[10..25]
 
 			# TODO detect question type and convert percentage columns			
 
