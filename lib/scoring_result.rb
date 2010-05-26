@@ -178,15 +178,17 @@ class ScoringResult
 	end
 
 	def as_html(*args)
+		options = args.pop if args.last.is_a? Hash 
 		result = <<-EOS
 			<html>
 			<head>
-				<title>Enquete resultaat</title>
+				<title>Enquete: #{options[:title] || "Resultaat"}</title>
 		    <script src="javascripts/jquery.js" type="text/javascript"></script>
 		    <script src="javascripts/application.js" type="text/javascript"></script>
     		<link href="stylesheets/application.css" media="screen" rel="stylesheet" type="text/css" />
 			</head>
 			<body>
+			<h1>#{options[:title] || "Resultaat"}</h1>
 
 			<ul class="matrix-tiles">
 		EOS
