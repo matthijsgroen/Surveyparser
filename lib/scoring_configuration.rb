@@ -60,7 +60,7 @@ class ScoringConfiguration
 		@scoring_rules.each do |q_data|
 			result.plot_data q_data, data_hash
 		end
-		#result.present_results
+		
 		result
 	end
 

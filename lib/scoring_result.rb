@@ -45,12 +45,12 @@ class ScoringResult
 		# X
 	def handle_single_answer question_data, result_data
 		value = result_data[:question_data][question_data[:question_id]]
+		#puts "#{question_data[:question]} = #{value}"
 
 		return if value.nil? # question is not answered.
 		raise "Picked value is not a valid number '#{value}'" unless (value.to_i.to_s == value)
 		answer_with_score = question_data[:answer_scoring][value.to_i - 1]
 		raise "Picked answer has no assigned score '#{question_data[:question]}' picked: #{value} for #{result_data[:meta_data][:full_name]}" if answer_with_score.nil?
-
 		sustainability_score, score_type = convert_score_text answer_with_score
 		return if sustainability_score.nil? # no opinion / don't know
 
@@ -65,6 +65,7 @@ class ScoringResult
 	end
 
 	def handle_formula_answer question_data, result_data, options = {}
+
 		calculation_data = { }
 		unless (options[:no_score] || false) == true
 			value = result_data[:question_data][question_data[:question_id]]
@@ -129,7 +130,7 @@ class ScoringResult
 		if result = text.match(/^(-?\d+)%$/i)
 			return [result[0].to_i / 100.0, :percentage]
 		end
-		if result = text.match(/^(\d+)$/i)
+		if result = text.match(/^(-?\d+)$/i)
 			return [result[0].to_i, :numeric]
 		end
 	end
@@ -157,7 +158,9 @@ class ScoringResult
 							cloud_line = []
 							q_data[:cloud].each { |key, value| cloud_line << "#{key} (#{value})" }
 							group_result = "(#{ cloud_line * ", " })"
-						elsif (q_data[:conversion] == :na or q_data[:score_type] == :numeric) and q_data[:score_type] != :percentage
+						elsif q_data[:score_type] == :numeric
+						  
+							#elsif (q_data[:conversion] == :na or q_data[:score_type] == :numeric) and q_data[:score_type] != :percentage
 							group_result = "(#{"%.2f" % q_data[:score]})"
 						else
 							factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) *
@@ -217,21 +220,19 @@ class ScoringResult
 							q_data[:cloud].each { |key, value| cloud_line << "#{key} (#{value})" }
 							group_result = "(#{ cloud_line * ", " } uit #{q_data[:amount]})"
 						elsif q_data[:score_type] == :numeric
-							group_result = "(#{"%.2f" % q_data[:score]} uit #{q_data[:amount]})"
+							group_result = "(#{"%.2f" % q_data[:score]} uit #{q_data[:amount]}) = (#{"%.4f" % q_data[:sum]} / #{q_data[:amount]})"
 						else
 							factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) *
 								(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
-							group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]})"
+							group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]}) = (#{"%.4f" % q_data[:sum]} / #{q_data[:amount]})"
 						end
 
 						result += "<li><span class=\"question\">#{question.gsub("\n", " ")} (#{q_data[:question_type]}) #{group_result}</span>\n"
 
 						result += "<ol class=\"scores\">"
-						(q_data[:results] || []).each_with_index do |score, index|
-							result += "<li>#{score}"
-
-							comment = (q_data[:comments] || [])[index]
-							result += "<p class=\"comment\">#{comment_to_html(comment)}</p>\n" if comment
+						(q_data[:meta_data] || []).each_with_index do |meta_data, index|
+							result += "<li>#{meta_data[:score]} (#{meta_data[:participant]})"
+							result += "<p class=\"comment\">#{comment_to_html(meta_data[:comment])}</p>\n" if meta_data[:comment]
 
 							result += "</li>\n"
 						end
@@ -299,8 +300,14 @@ class ScoringResult
 					:scores => @scores.collect do |score_row|
 						score_row[:question_score] if score_row[:question_id] == q_id
 					end.compact,
-					:comments => @scores.collect do |score_row|
-						score_row[:comment] if score_row[:question_id] == q_id
+					:meta_data => @scores.collect do |score_row|
+						if score_row[:question_id] == q_id
+							{
+								:comment => score_row[:comment],
+								:participant => score_row[:participant][:full_name],
+								:score => score_row[:question_score]
+							}
+						end
 					end.compact
 				}
 				question_scores[q_id][:amount] = question_scores[q_id][:scores].length
@@ -314,6 +321,7 @@ class ScoringResult
 				else
 					sum = 0.0
 					question_scores[q_id][:scores].each { |score| sum += score  }
+					question_scores[q_id][:sum] = sum 
 					question_scores[q_id][:average] = sum / question_scores[q_id][:amount]
 				end
 			end
@@ -327,11 +335,13 @@ class ScoringResult
 				:score => data[:average],
 				:results => data[:scores],
 				:cloud => data[:cloud],
-				:comments => data[:comments],
+				:meta_data => data[:meta_data],
 				:conversion => data[:indicator_conversion],
 				:question_type => data[:question_type],
 				:score_type => data[:score_type],
-				:amount => data[:amount]
+				:amount => data[:amount],
+				:sum => data[:sum],
+				:average => data[:average]
 			}
 		end
 
