@@ -88,8 +88,8 @@ class ScoringResult
 
 		begin
 			sustainability_score = formula.call calculation_data
-		rescue
-			puts "Error doing calculation: #{formula.to_string calculation_data}"
+		rescue StandardError => error
+			puts "Error doing calculation: #{formula.to_string calculation_data} #{error}"
 		end
 		return if sustainability_score.nil?
 		#return if sustainability_score.nil? # no opinion / don't know

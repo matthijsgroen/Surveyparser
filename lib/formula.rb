@@ -140,9 +140,9 @@ class Formula
 				parameters[0] / parameters[1]
 			# functions:
 			when :max then
-				parameters.max
+				parameters.compact.max
 			when :min then
-				parameters.min
+				parameters.compact.min
 			when :sum then
 				begin
 					result = 0.0
@@ -163,14 +163,18 @@ class Formula
 				end
 			when :empty then
 				begin
-					item = parameters[0]
-					item.to_s.strip == "" ? 1 : 0
+					result = parameters.collect { |item| item.to_s.strip == "" ? 1 : 0 }
+					result.include?(0) ? 0 : 1 					
 				end
 			# variables
 			when :term then
 				begin
 					raise "Can't find  term: #{parameters[0]}" unless input.has_key? parameters[0]
 					input[parameters[0]]
+				end
+			when :literal
+				begin
+					parameters[0]
 				end
 			# no-op
 			when nil, :percentage then
@@ -232,6 +236,10 @@ class Formula
 			# parse numeric value
 		elsif code.to_f.to_s == code
 			return nil, [code.to_f]
+
+			# parse literal
+		elsif result = code.match(/\ANIL\z/)
+			return :literal, [nil]
 
 			# parse variable term
 		elsif result = code.match(/\A([A-Z][A-Z0-9_]*)\z/)
