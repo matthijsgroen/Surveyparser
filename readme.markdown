@@ -1,16 +1,17 @@
-= SurveyResult parser
+SurveyResult parser
+===================
 
-== Input files
+Input files
+-----------
 This tool uses 2 input files:
 1. A resultset from a checkmarket survey, stored as valid CSV
 2. A definition sheet how the results should be interpreted, scored and scaled to a whole. Also in valid CSV
 
-=== The checkmarket file:
+### The checkmarket file:
 When downloading the checkmarket file, the file does not always contain valid formatted CSV. It is recommended to
 store the file as a .xls file and export the active sheet as .CSV.
 
 The program splits the checkmarket file in 2 column groups. Question-data and meta-data
-
 The first 19 columns are considered meta-data:
 
 0. "E-mailadres"
@@ -35,5 +36,5 @@ The first 19 columns are considered meta-data:
 
 Column 4, "Optioneel veld 1" is used to store the intercalation of the name e.g. "van" or "van der"
 
-=== The definition sheet
+### The definition sheet
 
