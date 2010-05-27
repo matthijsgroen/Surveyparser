@@ -14,12 +14,13 @@ The execution uses the following steps:
 7. An output HTML file is created. This can also be plain text output
 
 Input files
------------
+===========
 This tool uses 2 input files:
 1. A resultset from a checkmarket survey, stored as valid CSV
 2. A definition sheet how the results should be interpreted, scored and scaled to a whole. Also in valid CSV
 
-### The checkmarket file:
+The checkmarket file:
+---------------------
 When downloading the checkmarket file, the file does not always contain valid formatted CSV. It is recommended to
 store the file as a .xls file and export the active sheet as .CSV.
 
@@ -48,7 +49,8 @@ The first 19 columns are considered meta-data:
 
 Column 4, "Optioneel veld 1" is used to store the intercalation of the name e.g. "van" or "van der"
 
-### The definition sheet
+The definition sheet
+--------------------
 The definition sheet must have the following format:
 
 1. matrix-tile
@@ -63,12 +65,17 @@ The definition sheet must have the following format:
 10. e-value of curve
 11-28. answer scores / formula
 
-== Rule types
+Rule types
+==========
 
-### "1 antwoord" (single answer)
+"1 antwoord" (single answer)
+----------------------------
 
-### "dummy"
+"dummy"
+-------
 
-### "meta berekening" (multiple question input calculation)
+"meta berekening" (multiple question input calculation)
+-------------------------------------------------------
 
-### "cloud" (text answer cloud)
+"cloud" (text answer cloud)
+---------------------------
