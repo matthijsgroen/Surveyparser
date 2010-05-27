@@ -1,12 +1,12 @@
 # Formula parser and calculator
-# author: Matthijs Groen
+# Author:: Matthijs Groen
 #
 # This class has two main functions:
 # 1. to parse formula into ready-to-use-arrays
 # 2. use those arrays to perform calculations
 #
 #
-# =Parsing formula
+# = Parsing formula
 # my_formula = Formula.new("100% – (MAX(score – 5, 0) * 10%)") => Formula
 # my_formula_data = Formula.make("100% – (MAX(score – 5, 0) * 10%)") => Array
 #
@@ -14,35 +14,36 @@
 # the parameters can also be arrays: e.g. sub-calculations
 #
 # The text formula can be build with the following elements:
-# operators:
-#   -: subtract. subtracts the right side from the left side argument
-#   *: multiply. multiplies the left side with the right side argument
-#   /: divide. divides the left side with the ride side argument
-#   +: add. adds the right side to the left side argument
+# == operators:
+# -:: subtract. subtracts the right side from the left side argument
+# *:: multiply. multiplies the left side with the right side argument
+# /:: divide. divides the left side with the ride side argument
+# +:: add. adds the right side to the left side argument
 #
-# functions:
-#   functions have the format of name(parameters)
-#   the parameters of the function will be pre calculated before the code of the function is executed.
-#   supported functions:
-#		- max: selects the biggest value from the provided values
-#		- min: selects the smallest value from the provided values
-#		- sum: creates a sum of all the provided values
-#		- avg: creates an average of all the provided values
-#		- select: selects the value with the index of the first parameter
-#		- empty: returns 1 if the given string is empty, 0 otherwise
+# == functions:
+# functions have the format of name(parameters)
+# the parameters of the function will be pre calculated before the code of the function is executed.
+# supported functions:
 #
-# parenthesis:
-#   parentesis can be used to group calculation parts
+# max:: selects the biggest value from the provided values
+#	min:: selects the smallest value from the provided values
+#	sum:: creates a sum of all the provided values
+#	avg:: creates an average of all the provided values
+#	select:: selects the value with the index of the first parameter
+#	empty:: returns 1 if the given string is empty, 0 otherwise
 #
-# variables:
-#   terms that start with a alfabetic character and contain only alfanumeric characters and underscores
-#   can be used as variables. A hash with variables should be supplied when the calculation is performed
+# == parenthesis:
+# parentesis can be used to group calculation parts
 #
-# numeric values:
-#   numeric values like integers, floats and percentages are also allowed. Percentages will be converted to floats.
-#		33% and 66% will be converted to resp. 100% / 3 and 200% / 3
+# == variables:
+# terms that start with a alfabetic character and contain only alfanumeric characters and underscores
+# can be used as variables. A hash with variables should be supplied when the calculation is performed
 #
-# =Performing calculations
+# == numeric values:
+# numeric values like integers, floats and percentages are also allowed. Percentages will be converted to floats.
+#	3% and 66% will be converted to resp. 100% / 3 and 200% / 3
+#
+# = Performing calculations
 # my_formula.call(:score => 7.0) => 0.8 (using the above formula example)
 # Formula.calculate(my_formula_data, :score => 3.0) => 1.0 (using the above formula example)
 #
@@ -59,6 +60,7 @@ class Formula
 		#puts "#{@calculation.inspect}"
 	end
 
+	# Parses the given formula as text and returns the formula in nested array form.
 	def self.make(code)
 		#puts "parsing: #{code}"
 		parse_operation(code.upcase)
@@ -112,6 +114,10 @@ class Formula
 			# variables
 			when :term then
 				"#{string_parameters[0]}[#{input[string_parameters[0]] ? input[string_parameters[0]] : "nil"}]"
+			when :literal then
+				begin
+					"nil" if string_parameters[0].nil?
+				end
 			# no-op
 			when nil then
 				string_parameters[0].to_s
@@ -173,9 +179,7 @@ class Formula
 					input[parameters[0]]
 				end
 			when :literal
-				begin
-					parameters[0]
-				end
+				parameters[0]
 			# no-op
 			when nil, :percentage then
 				parameters[0].to_f

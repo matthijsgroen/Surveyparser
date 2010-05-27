@@ -3,6 +3,8 @@ require 'fastercsv'
 
 class ResultParser
 
+	META_DATA_BOUNDARY = 18
+
 	def initialize scoring_filename
 		@scoring_configuration = ScoringConfiguration.new scoring_filename
 		reset!
@@ -47,7 +49,7 @@ class ResultParser
 			# 18 "Geolocatie (via IP)";
 			data_hash = { :meta_data => {}, :question_data => {} }
 			field_names.each_with_index do |name, index|
-				key = index > 18 ? :question_data : :meta_data
+				key = index > META_DATA_BOUNDARY ? :question_data : :meta_data
 				data_hash[key][name] = row[index]
 			end
 			data_hash[:meta_data][:full_name] = "#{data_hash[:meta_data]["Voornaam"]} " +
