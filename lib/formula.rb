@@ -63,7 +63,11 @@ class Formula
 	# Parses the given formula as text and returns the formula in nested array form.
 	def self.make(code)
 		#puts "parsing: #{code}"
-		parse_operation(code.upcase)
+		begin
+			parse_operation(code.upcase)
+		rescue StandardError => e
+			raise "Error in formula: #{code}: #{e}"
+		end
 	end
 
 	# executes the formula with a hash of given calculation terms
