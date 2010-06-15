@@ -151,6 +151,8 @@ class Formula
 				parameters[0] * parameters[1]
 			when :divide then
 				parameters[0] / parameters[1]
+			when :power then
+				parameters[0] ** parameters[1]
 			# functions:
 			when :max then
 				parameters.compact.max
