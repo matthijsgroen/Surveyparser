@@ -3,68 +3,78 @@ require 'fastercsv'
 
 class ScoringConfiguration
 
+	DEFAULT_FORMULA = "value"
+
 	def initialize configuration_filename
 		data = FasterCSV.read configuration_filename
-		start_row = 1
-
 		@scoring_rules = []
 
+		names = data.shift.collect(&:downcase)
+
 		# Kolom lijst:
-		# "matrixvak"
-		# "score in matrixvak"
-		#	"indicator"
-		#	"codering"
-		#	"score in indicator (%)"
-		#	"vraag"
-		#	"antwoordmogelijkheid"
-		#	"soort"
-		#	"formule"
-		#	"e-waarde"
+		#	matrixvak
+		#	score in matrixvak
+		#	indicator
+		#	score in indicator
+		#	vraag
+		#	groepsformule
+		#	antwoordformule
 
-		# Score 1 - 16
-		start_row.times do data.shift end
-		data.each do |row|
-			row = row.collect { |item| item ? item.strip.gsub("–", "-").gsub("…", "...") : nil }
-			matrix_tile, score_tile, indicator, question_id, indicator_score, question,
-				answers, question_type, curve_formula, curve_base = row[0..9]
-			answer_scores = row[10..25]
+		data.each_with_index do |csv_row, row_index|
+			mapped_row = {}
+			csv_row.each_with_index do |field, index|
+				mapped_row[names[index]] = field ? cleanup_field_value(field) : nil
+			end
+			begin
+				answer_formula = mapped_row["antwoordformule"]
+				answer_formula ||= DEFAULT_FORMULA
+				answer_formula = DEFAULT_FORMULA if answer_formula == ""
 
-			# TODO detect question type and convert percentage columns			
+				group_formula = mapped_row["groepsformule"]
+				group_formula ||= DEFAULT_FORMULA
+				group_formula = DEFAULT_FORMULA if group_formula == ""
 
-			scoring_rule = {
-				:matrix_tile => matrix_tile,
-				:score_tile => score_tile,
-				:indicator => indicator,
-				:indicator_score => indicator_score,
-				:question => question,
-				:question_id => question_id,
-				:answers => answers,
-				:question_type => question_type,
-				:answer_scoring => answer_scores,
+				@scoring_rules << {
+					:matrix_tile => mapped_row["matrixvak"],
+					:matrix_conversion => convert_score_text(mapped_row["score in matrixvak"]),
 
-				:matrix_conversion => convert_score_text(score_tile),
-				:indicator_conversion => convert_score_text(indicator_score)
+					:indicator => mapped_row["indicator"],
+					:indicator_conversion => convert_score_text(mapped_row["score in indicator"]),
 
-			}
+					:question => mapped_row["vraag"],
 
-			scoring_rule[:formula] = Formula.new answer_scores[0] if ["verdeel punten", "meta berekening"].include? question_type
+					:formula => Formula.new(answer_formula),
+					:group_formula => Formula.new(group_formula),
 
-			@scoring_rules << scoring_rule
+					:row_values => mapped_row
+				}
+			rescue StandardError => e
+				puts "Error occured parsing row #{row_index + 2} from the scoring_definition sheet: #{e}"
+				raise
+			end
 		end
 
 	end
 
-	def parse_results data_hash
+	def parse_results data_hash, value_mapper
 		#puts "parsing results for #{data_hash[:meta_data]["Voornaam"]}"
 		result = ScoringResult.new		
-		@scoring_rules.each do |q_data|
-			result.plot_data q_data, data_hash
+		@scoring_rules.each_with_index do |q_data, row_index|
+			begin
+				result.plot_data q_data, data_hash, value_mapper
+			rescue StandardError => e
+				puts "Error occured on line #{row_index + 2}: #{e}"
+				raise
+			end
 		end
-		
 		result
 	end
 
 	private
+
+	def cleanup_field_value(text)
+		text.strip.gsub("–", "-").gsub("…", "...")
+	end
 
 	def convert_score_text text
 		return nil if text.nil?

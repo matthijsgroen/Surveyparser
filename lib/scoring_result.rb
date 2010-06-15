@@ -8,81 +8,85 @@ class ScoringResult
 	attr_reader :scores
 
 	#	@scoring_map[question_id] = {
-	#		:matrix_tile => matrix_tile,
-	#		:score_tile => score_tile,
-	#		:indicator => indicator,
-	#		:indicator_score => indicator_score,
-	#		:question => question,
-	#		:answers => answers,
-	#		:answer_scoring => answer_scores
+	#		:matrix_tile => mapped_row["matrixvak"],
+	#		:matrix_conversion => convert_score_text(mapped_row["score in matrixvak"]),
+	#
+	#		:indicator => mapped_row["indicator"],
+	#		:indicator_conversion => convert_score_text(mapped_row["score in indicator"]),
+	#
+	#		:question => mapped_row["vraag"],
+	#
+	#		:formula => Formula.new(answer_formula),
+	#		:group_formula => Formula.new(group_formula),
+	#
+	#		:row_values => mapped_row
 	#	}
-	def plot_data question_data, result_row
-		return if question_data[:matrix_conversion].nil? or question_data[:indicator_conversion].nil? # no scoring known for this question
+	def plot_data question_data, result_row, value_mapper
+		raise "No conversion rate given for \"score in matrixvak\"" if question_data[:matrix_conversion].nil?
+		raise "No conversion rate given for \"score in indicator\"" if question_data[:indicator_conversion].nil? # no scoring known for this question
 
-		case question_data[:question_type]
-			when "cloud" then handle_cloud_answer question_data, result_row
-			when "1 antwoord" then handle_single_answer question_data, result_row
-			when "dummy" then handle_dummy_answer question_data, result_row
-			when "verdeel punten" then handle_formula_answer question_data, result_row
-			when "meta berekening" then handle_formula_answer question_data, result_row, :no_score => true
-			else puts "Geen support voor vragentype: #{question_data[:question_type]}"
-		end
+		handle_formula_answer question_data, result_row, value_mapper
+
+
+#		case question_data[:question_type]
+#			when "cloud" then handle_cloud_answer question_data, result_row
+#			when "1 antwoord" then handle_single_answer question_data, result_row
+#			when "dummy" then handle_dummy_answer question_data, result_row
+#			when "verdeel punten" then handle_formula_answer question_data, result_row
+#			when "meta berekening" then handle_formula_answer question_data, result_row, :no_score => true
+#			else puts "Geen support voor vragentype: #{question_data[:question_type]}"
+#		end
 	end
 
-	#	Autonomie
-		#	25%
-		# ontwikkelmogelijkheden
-		# q12_1
-		# 100%
-		# Ik krijg ruimte om mezelf  te ontwikkelen op het gebied van duurzaamheid.
-		# (1) zeer mee oneens (2) mee oneens (3) neutraal (4) mee eens (5) zeer mee eens (6) geen mening
-		# 1 antwoord
-		# 0%
-		# 10%
-		# 30%
-		# 65%
-		# 100%
-		# X
-	def handle_single_answer question_data, result_data
-		value = result_data[:question_data][question_data[:question_id]]
-		#puts "#{question_data[:question]} = #{value}"
+#	#	Autonomie
+#		#	25%
+#		# ontwikkelmogelijkheden
+#		# q12_1
+#		# 100%
+#		# Ik krijg ruimte om mezelf  te ontwikkelen op het gebied van duurzaamheid.
+#		# (1) zeer mee oneens (2) mee oneens (3) neutraal (4) mee eens (5) zeer mee eens (6) geen mening
+#		# 1 antwoord
+#		# 0%
+#		# 10%
+#		# 30%
+#		# 65%
+#		# 100%
+#		# X
+#	def handle_single_answer question_data, result_data
+#		value = result_data[:question_data][question_data[:question_id]]
+#		#puts "#{question_data[:question]} = #{value}"
+#
+#		return if value.nil? # question is not answered.
+#		raise "Picked value is not a valid number '#{value}'" unless (value.to_i.to_s == value)
+#		answer_with_score = question_data[:answer_scoring][value.to_i - 1]
+#		raise "Picked answer has no assigned score '#{question_data[:question]}' picked: #{value} for #{result_data[:meta_data][:full_name]}" if answer_with_score.nil?
+#		sustainability_score, score_type = convert_score_text answer_with_score
+#		return if sustainability_score.nil? # no opinion / don't know
+#
+#		add_scores result_data[:meta_data], question_data, sustainability_score, score_type, nil
+#	end
+#
+#	def handle_dummy_answer question_data, result_data
+#		value = result_data[:question_data][question_data[:question_id]]
+#		return if value.nil? # question is not answered.
+#
+#		add_scores result_data[:meta_data], question_data, value.to_i, :numeric, nil
+#	end
 
-		return if value.nil? # question is not answered.
-		raise "Picked value is not a valid number '#{value}'" unless (value.to_i.to_s == value)
-		answer_with_score = question_data[:answer_scoring][value.to_i - 1]
-		raise "Picked answer has no assigned score '#{question_data[:question]}' picked: #{value} for #{result_data[:meta_data][:full_name]}" if answer_with_score.nil?
-		sustainability_score, score_type = convert_score_text answer_with_score
-		return if sustainability_score.nil? # no opinion / don't know
-
-		add_scores result_data[:meta_data], question_data, sustainability_score, score_type, nil
-	end
-
-	def handle_dummy_answer question_data, result_data
-		value = result_data[:question_data][question_data[:question_id]]
-		return if value.nil? # question is not answered.
-
-		add_scores result_data[:meta_data], question_data, value.to_i, :numeric, nil
-	end
-
-	def handle_formula_answer question_data, result_data, options = {}
-
-		calculation_data = { }
-		unless (options[:no_score] || false) == true
-			value = result_data[:question_data][question_data[:question_id]]
-			return if value.nil? # question is not answered.
-			raise "Picked value is not a valid number '#{value}'" unless (value.to_i.to_s == value)
-			calculation_data = { :score => value.to_i }
-		end
+	def handle_formula_answer question_data, result_data, value_mapper
+		calculation_data = { :value => nil }
 		formula = question_data[:formula]
 
-		calculation_data = { :score => value.to_i }
 		result_data[:question_data].each do |key, data|
-			if data.to_i.to_s == data
-				calculation_data[key.to_sym] = data.to_i
-			elsif data.to_f.to_s == data
-				calculation_data[key.to_sym] = data.to_f
-			else
-				calculation_data[key.to_sym] = data
+			new_key = value_mapper.map key.upcase
+			if new_key
+				if data.to_i.to_s == data
+					calculation_data[new_key] = data.to_i
+				elsif data.to_f.to_s == data
+					calculation_data[new_key] = data.to_f
+				else
+					calculation_data[new_key] = data
+				end
 			end
 		end
 
@@ -90,20 +94,26 @@ class ScoringResult
 			sustainability_score = formula.call calculation_data
 		rescue StandardError => error
 			puts "Error doing calculation: #{formula.to_string calculation_data} #{error}"
+			raise
 		end
-		return if sustainability_score.nil?
-		#return if sustainability_score.nil? # no opinion / don't know
+		return if sustainability_score.nil? # no opinion / don't know
 		comment = "#{sustainability_score} = #{formula.solve(calculation_data)}"
 
-		add_scores result_data[:meta_data], question_data, sustainability_score, :numeric, comment
+		value_type = case sustainability_score
+			when Numeric then :numeric
+			when String then :text
+			else :unknown
+		end
+
+		add_scores result_data[:meta_data], question_data, sustainability_score, value_type, comment
 	end
 
-	def handle_cloud_answer question_data, result_data, options = {}
-		value = result_data[:question_data][question_data[:question_id]]
-		return if value.nil? # question is not answered.
-		
-		add_scores result_data[:meta_data], question_data, value, :string, nil
-	end
+#	def handle_cloud_answer question_data, result_data, options = {}
+#		value = result_data[:question_data][question_data[:question_id]]
+#		return if value.nil? # question is not answered.
+#
+#		add_scores result_data[:meta_data], question_data, value, :string, nil
+#	end
 
 	def add_scores meta_data, question_data, question_score, score_type, comment
 		@scores << {

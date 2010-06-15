@@ -3,6 +3,7 @@
 require 'lib/formula.rb'
 require 'lib/scoring_configuration.rb'
 require 'lib/scoring_result.rb'
+require 'lib/value_mapping.rb'
 require 'lib/result_parser.rb'
 require 'pp'
 
@@ -18,10 +19,11 @@ def run_results(checkmarket_set, result_parser, filter, output_file, title)
   end
 end
 
-scoring_definition = "config/test5-vragen.csv"
-result_parser = ResultParser.new scoring_definition
+scoring_definition = "config/test6-vragen.csv"
+value_mapping = "config/mapping.csv"
 panel_document = "config/Panelleden-Onbewerkte-gegevens-10187-13865-2010526102232.csv"
 
+result_parser = ResultParser.new scoring_definition, value_mapping
 
 # Q1 - Plaats: (1) amsterdam (2) arnhem (3) breda (4) den haag (5) diemen (6) eindhoven (7) eindhoven (campus) (8) groningen (9) hengelo (10) leeuwarden (11) maastricht (12) rotterdam (13) utrecht (14) voorburg (15) zwolle
 # Q2 - KP/IP: (1) interim professional (2) kantoorprofessional

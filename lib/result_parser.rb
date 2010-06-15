@@ -5,7 +5,8 @@ class ResultParser
 
 	META_DATA_BOUNDARY = 18
 
-	def initialize scoring_filename
+	def initialize scoring_filename, mapping_filename
+		@value_mapping = ValueMapping.new mapping_filename
 		@scoring_configuration = ScoringConfiguration.new scoring_filename
 		reset!
 	end
@@ -55,7 +56,7 @@ class ResultParser
 			data_hash[:meta_data][:full_name] = "#{data_hash[:meta_data]["Voornaam"]} " +
 				"#{data_hash[:meta_data]["Optioneel veld 1"]} #{data_hash[:meta_data]["Achternaam"]}" 
 
-			@results << @scoring_configuration.parse_results(data_hash) if match_filter(data_hash, filter)
+			@results << @scoring_configuration.parse_results(data_hash, @value_mapping) if match_filter(data_hash, filter)
 		end
 		@results
 	end

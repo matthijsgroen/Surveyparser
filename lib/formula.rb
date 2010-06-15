@@ -50,7 +50,7 @@
 class Formula
 
 	# Known operators
-	OPERATORS = "-*/+"
+	OPERATORS = "-*/+^"
 
 	# parse the given code formula in an array using the format
 	# calculation = [operation, [parameter, parameter]]
@@ -64,9 +64,10 @@ class Formula
 	def self.make(code)
 		#puts "parsing: #{code}"
 		begin
-			parse_operation(code.upcase)
+			parse_operation(code)
 		rescue StandardError => e
-			raise "Error in formula: #{code}: #{e}"
+			puts "Error in formula: #{code}: #{e}"
+			raise
 		end
 	end
 
@@ -116,6 +117,8 @@ class Formula
 					"#{operation}(#{string_parameters * ","})"
 				end
 			# variables
+			when :text then
+				"\"#{string_parameters[0]}\""
 			when :term then
 				"#{string_parameters[0]}[#{input[string_parameters[0]] ? input[string_parameters[0]] : "nil"}]"
 			when :literal then
@@ -131,7 +134,7 @@ class Formula
 	end
 
 	def self.calculate(calculation, input)
-		operation, parameters = * calculation
+		operation, parameters = *calculation
 
 		parameters = parameters.collect do |parameter|
 			parameter.is_a?(Array) ? calculate(parameter, input) : parameter
@@ -184,6 +187,8 @@ class Formula
 				end
 			when :literal
 				parameters[0]
+			when :text
+				parameters[0]
 			# no-op
 			when nil, :percentage then
 				parameters[0].to_f
@@ -198,43 +203,53 @@ class Formula
 		# check if the code is totally surrounded by parenthesis that can be removed. remove them if possible
 		code = ungroup code
 
-		left, right, operator = "", "", nil
-		char_index, group_level = 0, 0
+		left, right, operator, operator_char = "", "", nil, ""
+		char_index, group_level, in_text = 0, 0, false
 		while char_index < code.length
 			char = code[char_index, 1]
-			if !operator and OPERATORS.include? char and group_level == 0
+			if operator.nil? and OPERATORS.include? char and group_level == 0 and not in_text
 				operator = case char
-					when "-" then
-						:subtract
-					when "+" then
-						:add
-					when "*" then
-						:times
-					when "/" then
-						:divide
+					when "-" then :subtract
+					when "+" then	:add
+					when "*" then	:times
+					when "/" then	:divide
+					when "^" then :power	
 				end
+				operator_char = char
 			else
-				group_level += (char == "(") ? 1 : -1 if "()".include? char
+				in_text = !in_text if char == "\""
+				group_level += (char == "(") ? 1 : -1 if "()".include? char and not in_text
 				operator ? right += char : left += char
 			end
 			char_index += 1
 		end
-		return parse_definition(left.strip) unless operator
+		begin
+			#puts "parse-result: #{operator}, #{left}, #{right}"
 
-		#puts "parse-result: #{operator}, #{left}, #{right}"
-		return operator, [parse_operation(left.strip), parse_operation(right.strip)]
+			return parse_definition(left.strip) unless operator
+			return parse_definition(operator_char + right) if operator and left.strip == ""
+			return operator, [parse_operation(left.strip), parse_operation(right.strip)]
+		rescue StandardError => e
+			puts "can't parse code: \"#{code}\""
+			raise
+		end
 	end
 
 	def self.parse_definition(code)
 		code = code.strip
-		# parse percentages 100%, 10%
-		if result = code.match(/\A([\d\.]+)%\z/)
+
+		# text "some text"
+		if result = code.match(/\A"([^"]*)"\z/)
+			return :text, result[1]
+			
+			# parse percentages 100%, 10%
+		elsif result = code.match(/\A([\d\.]+)%\z/)
 			return :percentage, [1.0 / 3.0] if result[1].to_f == 33.0
 			return :percentage, [2.0 / 3.0] if result[1].to_f == 66.0
 			return :percentage, [result[1].to_f / 100.0]
 
 			# parse function calls in the format FUNCTION(parameters)
-		elsif result = code.match(/\A([A-Z_]+)\((.+)\)\z/m)
+		elsif result = code.upcase.match(/\A([A-Z_]+)\((.+)\)\z/m)
 			return result[1].downcase.to_sym, self.parameterize(result[2][0 .. -1]).collect { |parameter| parse_operation(parameter) }
 
 			# parse numeric value
@@ -246,12 +261,14 @@ class Formula
 			return nil, [code.to_f]
 
 			# parse literal
-		elsif result = code.match(/\ANIL\z/)
+		elsif result = code.upcase.match(/\ANIL\z/)
 			return :literal, [nil]
 
 			# parse variable term
-		elsif result = code.match(/\A([A-Z][A-Z0-9_]*)\z/)
+		elsif result = code.upcase.match(/\A([A-Z][A-Z0-9_]*)\z/)
 			return :term, [result[1].downcase.to_sym]
+		elsif result = code.upcase.match(/\A-([A-Z][A-Z0-9_]*)\z/)
+			return :negative_term, [result[1].downcase.to_sym]
 		else
 			raise "can't parse code: \"#{code}\""
 		end
@@ -266,13 +283,15 @@ class Formula
 	def self.ungroup(code)
 		# exit if the code does not start with an opening parentesis
 		return code unless code[0, 1] == "("
+		return code unless code[-1, 1] == ")"
 		# since we know the first character is an opening parenthesis,
 		# start parsing at the second character, and assume grouping level 1
-		group_level, char_index = 1, 1
+		group_level, char_index, in_text = 1, 1, false
 		while char_index < code.length
 			char = code[char_index, 1]
-			group_level += 1 if char == "("
-			group_level -= 1 if char == ")"
+			in_text = !in_text if char == "\""
+			group_level += 1 if char == "(" and not in_text
+			group_level -= 1 if char == ")" and not in_text
 
 			# only strip the first and last parenthesis if we exit the grouping AND we reached the last character
 			return code[1 .. -2] if group_level == 0 and char_index == code.length - 1
@@ -288,13 +307,14 @@ class Formula
 		# since we know the first character is an opening parenthesis,
 		# start parsing at the second character, and assume grouping level 1
 		current_param, char = "", ""
-		group_level, char_index = 0, 0
+		group_level, char_index, in_text = 0, 0, false
 		while char_index <= code.length
 			char = code[char_index, 1]
-			group_level += 1 if char == "("
-			group_level -= 1 if char == ")"
+			in_text = !in_text if char == "\""
+			group_level += 1 if char == "(" and not in_text
+			group_level -= 1 if char == ")" and not in_text
 
-			if char == "," and group_level == 0
+			if char == "," and group_level == 0 and not in_text
 				result << current_param
 				current_param = ""
 			else
