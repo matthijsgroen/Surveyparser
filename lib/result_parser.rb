@@ -61,6 +61,10 @@ class ResultParser
 		@results
 	end
 
+	def scoring_rules
+		@scoring_configuration.scoring_rules
+	end
+
 	private
 
 	def match_filter data_hash, filter

@@ -5,11 +5,13 @@ class ScoringConfiguration
 
 	DEFAULT_FORMULA = "value"
 
+	attr_reader :scoring_rules
+
 	def initialize configuration_filename
 		data = FasterCSV.read configuration_filename
 		@scoring_rules = []
 
-		names = data.shift.collect(&:downcase)
+		names = data.shift.collect(&:downcase).collect(&:strip)
 
 		# Kolom lijst:
 		#	matrixvak
@@ -21,10 +23,25 @@ class ScoringConfiguration
 		#	antwoordformule
 
 		data.each_with_index do |csv_row, row_index|
+			return if row_index > 15
 			mapped_row = {}
+			values_row = {}
 			csv_row.each_with_index do |field, index|
-				mapped_row[names[index]] = field ? cleanup_field_value(field) : nil
+				value = field ? cleanup_field_value(field) : nil
+				mapped_row[names[index]] = value
+
+				value = if value.to_i.to_s == value
+					value.to_i
+				elsif value.to_f.to_s == value
+					value.to_f
+				elsif "%.2f" % value.to_f == value
+					value.to_f
+				else
+					value
+				end
+				values_row[spreadsheet_columnname(index).to_sym] = value
 			end
+			
 			begin
 				answer_formula = mapped_row["antwoordformule"]
 				answer_formula ||= DEFAULT_FORMULA
@@ -42,18 +59,18 @@ class ScoringConfiguration
 					:indicator_conversion => convert_score_text(mapped_row["score in indicator"]),
 
 					:question => mapped_row["vraag"],
+					:question_id => row_index,
 
 					:formula => Formula.new(answer_formula),
 					:group_formula => Formula.new(group_formula),
 
-					:row_values => mapped_row
+					:row_values => values_row.dup
 				}
 			rescue StandardError => e
 				puts "Error occured parsing row #{row_index + 2} from the scoring_definition sheet: #{e}"
 				raise
 			end
 		end
-
 	end
 
 	def parse_results data_hash, value_mapper
@@ -72,7 +89,7 @@ class ScoringConfiguration
 
 	private
 
-	def cleanup_field_value(text)
+	def cleanup_field_value text
 		text.strip.gsub("–", "-").gsub("…", "...")
 	end
 
@@ -84,6 +101,19 @@ class ScoringConfiguration
 			return result[0].to_i / 100.0
 		end
 		return :na if text.upcase == "N.V.T."
+	end
+
+	def spreadsheet_columnname index
+		count_index = index
+		result = ""
+		abc = ('a'..'z').to_a
+
+		if count_index >= abc.length
+			result += spreadsheet_columnname(((count_index - abc.length) / abc.length.to_f).floor)
+			count_index = count_index % abc.length
+		end
+		result += abc[count_index]
+		return result
 	end
 
 end

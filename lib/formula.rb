@@ -75,7 +75,7 @@ class Formula
 	def call(input)
 		begin
 			Formula.calculate(@calculation, input)
-		rescue TypeError => e
+		rescue StandardError => e
 			raise "Error executing formula: #{Formula.calculation_to_s(@calculation, input)} : #{e.message}"
 		end
 	end
@@ -98,11 +98,13 @@ class Formula
 			when :add,
 				:subtract,
 				:times,
-				:divide then
+				:divide,
+				:power then
 				"(#{string_parameters[0]} #{{:add => "+",
 																		 :subtract => "-",
 																		 :times => "*",
-																		 :divide => "/"}[operation]} #{string_parameters[1]})"
+																		 :divide => "/",
+																		 :power => "^"}[operation]} #{string_parameters[1]})"
 			# functions:
 			when :max,
 				:min,
@@ -121,6 +123,8 @@ class Formula
 				"\"#{string_parameters[0]}\""
 			when :term then
 				"#{string_parameters[0]}[#{input[string_parameters[0]] ? input[string_parameters[0]] : "nil"}]"
+			when :negative_term then
+				"-#{string_parameters[0]}[#{input[string_parameters[0]] ? input[string_parameters[0]] : "nil"}]"
 			when :literal then
 				begin
 					"nil" if string_parameters[0].nil?
@@ -130,6 +134,8 @@ class Formula
 				string_parameters[0].to_s
 			when :percentage then
 				"#{string_parameters[0] * 100.0}%"
+			else
+				"!unsupported(#{operation}}"
 		end
 	end
 
@@ -184,8 +190,13 @@ class Formula
 			# variables
 			when :term then
 				begin
-					raise "Can't find  term: #{parameters[0]}" unless input.has_key? parameters[0]
+					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.inspect}" unless input.has_key? parameters[0]
 					input[parameters[0]]
+				end
+			when :negative_term then
+				begin
+					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.inspect}" unless input.has_key? parameters[0]
+					-input[parameters[0]]
 				end
 			when :literal
 				parameters[0]
