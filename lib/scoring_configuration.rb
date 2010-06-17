@@ -23,7 +23,7 @@ class ScoringConfiguration
 		#	antwoordformule
 
 		data.each_with_index do |csv_row, row_index|
-			return if row_index > 15
+			#return if row_index > 15
 			mapped_row = {}
 			values_row = {}
 			csv_row.each_with_index do |field, index|
