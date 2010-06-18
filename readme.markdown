@@ -7,6 +7,7 @@ The question results will be made to an average, wich can be put to a second cal
 Installation
 ============
 To install and use this tool, you'll need the following:
+
 1.	GIT
 2.	Ruby
 3.	A gem called `fastercsv`
@@ -19,6 +20,7 @@ On Debian/Ubuntu Linux use your package manager:
 	sudo apt-get install git
 
 On Windows:
+
 1.	[Download msysgit from google code](http://code.google.com/p/msysgit/)
 2.	Install
 
@@ -29,6 +31,7 @@ On Debian/Ubuntu Linux use your package manager:
 	sudo apt-get install ruby
 
 On Windows:
+
 1.	[Download rubyinstaller](http://rubyinstaller.org/)
 2.	Install
 
@@ -39,7 +42,7 @@ Gems are code plugins for ruby. We use the fastercsv gem for easy reading of CSV
 Open a ruby shell on windows, or a normal shell on linux
 
 	gem install fastercsv
-	
+
 4. Installing this tool
 -----------------------
 Open a git shell on windows, or a normal shell on linux.
@@ -70,6 +73,7 @@ Preparating input Files
 =======================
 The tool uses 3 CSV (**C**omma **S**eparated **V**alues) input files.
 All CSV input files must be text separated by double quotes ("), and field separated by a comma (,)
+
  1. the survey results from check market.
  2. the calculation rules
  3. the mapping between variables used in the calculation rules and the question-result names from checkmarket
