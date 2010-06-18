@@ -7,10 +7,10 @@ The question results will be made to an average, wich can be put to a second cal
 Installation
 ============
 To install and use this tool, you'll need the following:
-	1. GIT
-	2. Ruby
-	3. A gem called `fastercsv`
-	4. This tool
+1. GIT
+2. Ruby
+3. A gem called `fastercsv`
+4. This tool
 
 1. Installing GIT
 -----------------
@@ -19,8 +19,8 @@ On Debian/Ubuntu Linux use your package manager:
 	sudo apt-get install git
 
 On Windows:
-	1. [Download msysgit from google code](http://code.google.com/p/msysgit/)
-	2. Install
+1. [Download msysgit from google code](http://code.google.com/p/msysgit/)
+2. Install
 
 2. Installing Ruby
 ------------------
@@ -29,8 +29,8 @@ On Debian/Ubuntu Linux use your package manager:
 	sudo apt-get install ruby
 
 On Windows:
-	1. [Download rubyinstaller](http://rubyinstaller.org/)
-	2. Install
+1. [Download rubyinstaller](http://rubyinstaller.org/)
+2. Install
 
 3. Installing the necessary gems
 --------------------------------
@@ -70,9 +70,9 @@ Preparating input Files
 =======================
 The tool uses 3 CSV (*C*omma *S*eparated *V*alues) input files.
 All CSV input files must be text separated by double quotes ("), and field separated by a comma (,)
-	1. the survey results from check market.
-	2. the calculation rules
-	3. the mapping between variables used in the calculation rules and the question-result names from checkmarket
+1. the survey results from check market.
+2. the calculation rules
+3. the mapping between variables used in the calculation rules and the question-result names from checkmarket
 
 Check market survey results
 ---------------------------
@@ -84,20 +84,26 @@ The calculation rules can be placed in an spreadsheet of choosing. The export of
 
 Here follows a list with columnnames and their function.
 
-	Matrixvak	
-		Deze kolom bevat de naam hoe de matrixvakken worden gepresenteerd in de analysetool resultaten. Wanneer dezelfde naam in meerdere regels worden gebruikt, worden de regels gegroepeerd onder deze noemer.
-	score in matrixvak	
-		Deze kolom bevat het percentage hoe de indicator als totaal gezien moet worden van het matrixvak. De totale score op de indicator wordt met het percentage vermenigvuldigd.
-	indicator	
-		Deze kolom bevat de naam hoe de indicatoren worden gepresenteerd in de analysetool resultaten. Wanneer dezelfde naam in meerdere regels worden gebruikt, worden de regels gegroepeerd onder deze noemer.
-	score in indicator
-		Deze kolom bevat het percentage hoe de vraag als totaal gezien moet worden van de indicator. De totale score op de vraag wordt met het percentage vermenigvuldigd.
-	vraag
-		Onder deze noemer worden de antwoorden gepresenteerd onder de indicator
-	groepsformule	
-		Deze formule wordt uitgevoerd nadat het gemiddelde is bepaald van alle antwoordformules
-	antwoordformule	
-		Deze formule wordt op participant niveau uitgevoerd
+### Matrixvak	
+Deze kolom bevat de naam hoe de matrixvakken worden gepresenteerd in de analysetool resultaten. Wanneer dezelfde naam in meerdere regels worden gebruikt, worden de regels gegroepeerd onder deze noemer.
+
+### score in matrixvak	
+Deze kolom bevat het percentage hoe de indicator als totaal gezien moet worden van het matrixvak. De totale score op de indicator wordt met het percentage vermenigvuldigd.
+
+### indicator	
+Deze kolom bevat de naam hoe de indicatoren worden gepresenteerd in de analysetool resultaten. Wanneer dezelfde naam in meerdere regels worden gebruikt, worden de regels gegroepeerd onder deze noemer.
+
+### score in indicator
+Deze kolom bevat het percentage hoe de vraag als totaal gezien moet worden van de indicator. De totale score op de vraag wordt met het percentage vermenigvuldigd.
+
+### vraag
+Onder deze noemer worden de antwoorden gepresenteerd onder de indicator
+
+### groepsformule	
+Deze formule wordt uitgevoerd nadat het gemiddelde is bepaald van alle antwoordformules
+
+### antwoordformule	
+Deze formule wordt op participant niveau uitgevoerd
 
 variable mapping
 ----------------
