@@ -1,81 +1,105 @@
 SurveyResult parser
 ===================
 
-The Survey result parser is used to calculate scores of different factors across survey results.
-The execution uses the following steps:
-1. The definition of score calculation is read and interpreted
-2. The survey results are loaded.
-3. The survey participants are filtered on a set of conditions.
-3. For every participant the definition rules are run and result in a answer-per-rule. The results of the survey are
-  mere input parameters. A definition rule can use multiple survey answers in a single calculation
-4. The list of scoring results and meta-information about the rule and participant is now created
-5. All results are now parsed into a tree form, with the levels: Matrix-tile, indicator and question(rule)
-6. Scores are averaged on question level and scaled to the indicator and matrix-tile level.
-7. An output HTML file is created. This can also be plain text output
+The SurverResult parser is a tool to calculate scores of survery results. Calculations can be based on one or multiple question results.
+The question results will be made to an average, wich can be put to a second calculation for scaling or curving the result.
 
-Input files
-===========
-This tool uses 2 input files:
-1. A resultset from a checkmarket survey, stored as valid CSV
-2. A definition sheet how the results should be interpreted, scored and scaled to a whole. Also in valid CSV
+Installation
+============
+To install and use this tool, you'll need the following:
+	1. GIT
+	2. Ruby
+	3. A gem called `fastercsv`
+	4. This tool
 
-The checkmarket file:
----------------------
-When downloading the checkmarket file, the file does not always contain valid formatted CSV. It is recommended to
-store the file as a .xls file and export the active sheet as .CSV.
+1. Installing GIT
+-----------------
+On Debian/Ubuntu Linux use your package manager:
 
-The program splits the checkmarket file in 2 column groups. Question-data and meta-data
-The first 19 columns are considered meta-data:
+	sudo apt-get install git
 
-0. "E-mailadres"
-1. "Achternaam"
-2. "Voornaam"
-3. "Taal"
-4. "Optioneel veld 1"
-5. "Datum toegevoegd"
-6. "Datum uitgenodigd"
-7. "Datum e-mail bekeken"
-8. "Datum doorgeklikt"
-9. "Datum herinnerd (niet geantwoord)"
-10. "Datum herinnerd (gedeeltelijk geantwoord)"
-11. "Datum geantwoord"
-12. "Einde bereikt"
-13. "Invultijd (seconden)"
-14. "Distributiemethode"
-15. "Browser"
-16. "Besturingssysteem"
-17. "IP"
-18. "Geolocatie (via IP)"
+On Windows:
+	1. [Download msysgit from google code](http://code.google.com/p/msysgit/)
+	2. Install
 
-Column 4, "Optioneel veld 1" is used to store the intercalation of the name e.g. "van" or "van der"
+2. Installing Ruby
+------------------
+On Debian/Ubuntu Linux use your package manager:
 
-The definition sheet
---------------------
-The definition sheet must have the following format:
+	sudo apt-get install ruby
 
-1. matrix-tile
-2. indicator scale on matrix tile
-3. indicator-name
-4. unique identifier
-5. question scale on indicator
-6. question
-7. answer options in text form
-8. rule-type
-9. scaling-curve-formula
-10. e-value of curve
-11-28. answer scores / formula
+On Windows:
+	1. [Download rubyinstaller](http://rubyinstaller.org/)
+	2. Install
 
-Rule types
-==========
+3. Installing the necessary gems
+--------------------------------
+Gems are code plugins for ruby. We use the fastercsv gem for easy reading of CSV files.
 
-"1 antwoord" (single answer)
-----------------------------
+Open a ruby shell on windows, or a normal shell on linux
 
-"dummy"
--------
+	gem install fastercsv
+	
+4. Installing this tool
+-----------------------
+Open a git shell on windows, or a normal shell on linux.
+Navigate to the folder using the 'cd' command. Windows users: use forward-slashes (/) in this prompt instead of back-slashes (\)
+In your folder of choosing, run:
 
-"meta berekening" (multiple question input calculation)
--------------------------------------------------------
+	git clone git://github.com/matthijsgroen/Surveyparser.git survey_parser
 
-"cloud" (text answer cloud)
+A folder called survey_parser will be created and this project will be downloaded in it.
+The installation is now complete!
+
+Updating the tool
+=================
+When the tool updates, (you can see the added changes [on github](http://github.com/matthijsgroen/Surveyparser/commits/master)) you need to update the code locally too.
+Open a git shell on windows, or a normal shell on linux.
+
+When the code is downloaded, the changed will be merged with the existing code. If there are unknown (uncommitted) changes in the code when trying to merge, the merge will fail. To prevent this, we purge all uncommited changes from the files under GIT management
+
+	git reset --hard
+
+After this, the code can be 'pulled' and merged from github again
+
+	git pull
+	
+After the pull. You'll need to edit the run.rb file again to set your filename and filters.
+
+Preparating input Files
+=======================
+The tool uses 3 CSV (*C*omma *S*eparated *V*alues) input files.
+All CSV input files must be text separated by double quotes ("), and field separated by a comma (,)
+	1. the survey results from check market.
+	2. the calculation rules
+	3. the mapping between variables used in the calculation rules and the question-result names from checkmarket
+
+Check market survey results
 ---------------------------
+The standard check market CSV file does not have a valid CSV format. My recommendation is to download the results in XLS format, and export the excel file as CSV. Place the CSV file in the *config/* folder of the tool.
+
+Calculation rules 
+-----------------
+The calculation rules can be placed in an spreadsheet of choosing. The export of the sheet must be done in CSV. There are certain columns mandatory in the sheet. They are detected by their column name (first row). Letter casing does not matter when the names are read.
+
+Here follows a list with columnnames and their function.
+
+	Matrixvak	
+		Deze kolom bevat de naam hoe de matrixvakken worden gepresenteerd in de analysetool resultaten. Wanneer dezelfde naam in meerdere regels worden gebruikt, worden de regels gegroepeerd onder deze noemer.
+	score in matrixvak	
+		Deze kolom bevat het percentage hoe de indicator als totaal gezien moet worden van het matrixvak. De totale score op de indicator wordt met het percentage vermenigvuldigd.
+	indicator	
+		Deze kolom bevat de naam hoe de indicatoren worden gepresenteerd in de analysetool resultaten. Wanneer dezelfde naam in meerdere regels worden gebruikt, worden de regels gegroepeerd onder deze noemer.
+	score in indicator
+		Deze kolom bevat het percentage hoe de vraag als totaal gezien moet worden van de indicator. De totale score op de vraag wordt met het percentage vermenigvuldigd.
+	vraag
+		Onder deze noemer worden de antwoorden gepresenteerd onder de indicator
+	groepsformule	
+		Deze formule wordt uitgevoerd nadat het gemiddelde is bepaald van alle antwoordformules
+	antwoordformule	
+		Deze formule wordt op participant niveau uitgevoerd
+
+variable mapping
+----------------
+
+
