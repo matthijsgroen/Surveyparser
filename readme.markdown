@@ -158,7 +158,7 @@ To indicate that an empty value is allowed the term `nil` can be used.
 
 Running the tool
 ================
-Start a ruby prompt, and navigate to the appropriate folder. (under windows this is probably `\\msysgit\\msysgit\\survey_parser`)
+Start a ruby prompt, and navigate to the appropriate folder. (under windows this is probably `\msysgit\msysgit\survey_parser`)
 
 	ruby run.rb
 	
@@ -184,11 +184,11 @@ Operations are symbols that perform a calculation operation. They have a left-si
 
 the following operations are supported:
 
-- addition (+): the right-side is added to the left-side `5 + 3 = 8`
-- subtraction (-): the right-side is subtracted from the left-side `5 - 3 = 2`
-- multiplication (*): the left-side is multiplied by the right side `5 * 3 = 15`
-- division (/): the left-side is divided by the right side `15 / 3 = 5`
-- power (^): the left-side is multiplied by the power of the right side `5 ^ 2 = 25`
+- addition (`+`): the right-side is added to the left-side `5 + 3 = 8`
+- subtraction (`-`): the right-side is subtracted from the left-side `5 - 3 = 2`
+- multiplication (`*`): the left-side is multiplied by the right side `5 * 3 = 15`
+- division (`/`): the left-side is divided by the right side `15 / 3 = 5`
+- power (`^`): the left-side is multiplied by the power of the right side `5 ^ 2 = 25`
 
 Functions:
 ----------
@@ -247,7 +247,8 @@ Examples:
 	select(2, 5, 6) = 2
 	select(0, 5, 6) = nil
 	select(3, 5, 6) = nil
-	select(3, 5, 6, 7, 8, 9) = 7	
+	select(3, 5, 6, 7, 8, 9) = 7
+	select(2, "Eindhoven", "Maastricht", "Den Bosch") = "Maastricht"	
 	select(nil, 4, 2) = nil
 	select(1) = nil
 	select() = nil
@@ -263,6 +264,36 @@ Examples:
 	
 Variables
 ---------
+Formula's can work with variables. These are terms starting with a letter, and can contain numbers and underscores.
+**Valid**
+`q1`, `my_name`, `a_good_number_is_24`
+**Invalid**
+`_my_name`, `7_days_a_week`
+
+variable values are read from the checkmarket result file through the mapping.
+values from the analysis spreadsheed can also be used. all columns are set as variables through their spreadsheet column indicator.
+**Example**
+
+	"first_column", 2, 50, "20%"
+
+In the formula these column values will be exposed as `a`, `b`, `c`, `d` and `e`.
+When more than 26 columns are used, the counting will continue as: `aa`, `ab`, `ac`, etc.
+
+	SELECT(EMPTY(a) + 1, 3 + b, (b * c) * d) = 5.0
+
+For formula's on participant level, the following values are available:
+
+1. `a` .. x (depending on amount of columns in analysis spreadsheet)
+2. the values exposed through the mapping
+
+the values of the mapping overrule the columns of the spreadsheet by default.
+
+For formula's on the group level, the following values are available
+
+1. `a` .. x (depending on amount of columns in analysis spreadsheet)
+2. `value` wich contains the average value of the results of the formula's on participant level. This value can be `nil` if no numeric value is available.
+
+
 
 
 

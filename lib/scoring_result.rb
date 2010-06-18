@@ -26,7 +26,7 @@ class ScoringResult
 		raise "No conversion rate given for \"score in indicator\"" if question_data[:indicator_conversion].nil? # no scoring known for this question
 		#puts question_data[:question]
 
-		calculation_data = { :value => nil }
+		calculation_data = question_data[:row_values].merge :value => nil
 		formula = question_data[:formula]
 
 		result_row[:question_data].each do |key, data|
