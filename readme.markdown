@@ -7,10 +7,10 @@ The question results will be made to an average, wich can be put to a second cal
 Installation
 ============
 To install and use this tool, you'll need the following:
- 1. GIT
- 2. Ruby
- 3. A gem called `fastercsv`
- 4. This tool
+1.	GIT
+2.	Ruby
+3.	A gem called `fastercsv`
+4.	This tool
 
 1. Installing GIT
 -----------------
@@ -19,8 +19,8 @@ On Debian/Ubuntu Linux use your package manager:
 	sudo apt-get install git
 
 On Windows:
- 1. [Download msysgit from google code](http://code.google.com/p/msysgit/)
- 2. Install
+1.	[Download msysgit from google code](http://code.google.com/p/msysgit/)
+2.	Install
 
 2. Installing Ruby
 ------------------
@@ -29,8 +29,8 @@ On Debian/Ubuntu Linux use your package manager:
 	sudo apt-get install ruby
 
 On Windows:
-1. [Download rubyinstaller](http://rubyinstaller.org/)
-2. Install
+1.	[Download rubyinstaller](http://rubyinstaller.org/)
+2.	Install
 
 3. Installing the necessary gems
 --------------------------------
@@ -43,7 +43,7 @@ Open a ruby shell on windows, or a normal shell on linux
 4. Installing this tool
 -----------------------
 Open a git shell on windows, or a normal shell on linux.
-Navigate to the folder using the 'cd' command. Windows users: use forward-slashes (/) in this prompt instead of back-slashes (\)
+Navigate to the folder using the `cd` command. Windows users: use forward-slashes (/) in this prompt instead of back-slashes (\)
 In your folder of choosing, run:
 
 	git clone git://github.com/matthijsgroen/Surveyparser.git survey_parser
@@ -64,7 +64,7 @@ After this, the code can be 'pulled' and merged from github again
 
 	git pull
 	
-After the pull. You'll need to edit the run.rb file again to set your filename and filters.
+After the pull. You'll need to edit the `run.rb` file again to set your filename and filters.
 
 Preparating input Files
 =======================
@@ -76,7 +76,7 @@ All CSV input files must be text separated by double quotes ("), and field separ
 
 Check market survey results
 ---------------------------
-The standard check market CSV file does not have a valid CSV format. My recommendation is to download the results in XLS format, and export the excel file as CSV. Place the CSV file in the *config/* folder of the tool.
+The standard check market CSV file does not have a valid CSV format. My recommendation is to download the results in XLS format, and export the excel file as CSV. Place the CSV file in the `config/` folder of the tool.
 
 Calculation rules 
 -----------------
