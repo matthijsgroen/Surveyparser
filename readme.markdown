@@ -43,7 +43,7 @@ Open a ruby shell on windows, or a normal shell on linux
 4. Installing this tool
 -----------------------
 Open a git shell on windows, or a normal shell on linux.
-Navigate to the folder using the `cd` command. Windows users: use forward-slashes (/) in this prompt instead of back-slashes (\)
+Navigate to the folder using the `cd` command. Windows users: use forward-slashes (/) in this prompt instead of back-slashes (\\)
 In your folder of choosing, run:
 
 	git clone git://github.com/matthijsgroen/Surveyparser.git survey_parser
@@ -68,7 +68,7 @@ After the pull. You'll need to edit the `run.rb` file again to set your filename
 
 Preparating input Files
 =======================
-The tool uses 3 CSV (*C*omma *S*eparated *V*alues) input files.
+The tool uses 3 CSV (**C**omma **S**eparated **V**alues) input files.
 All CSV input files must be text separated by double quotes ("), and field separated by a comma (,)
  1. the survey results from check market.
  2. the calculation rules
