@@ -15,10 +15,11 @@
 #
 # The text formula can be build with the following elements:
 # == operators:
-# -:: subtract. subtracts the right side from the left side argument
-# *:: multiply. multiplies the left side with the right side argument
-# /:: divide. divides the left side with the ride side argument
-# +:: add. adds the right side to the left side argument
+# -:: subtract. subtracts the right side from the left side argument.
+# *:: multiply. multiplies the left side with the right side argument.
+# /:: divide. divides the left side with the ride side argument.
+# +:: add. adds the right side to the left side argument.
+# ^:: power. multiplies the left side by the power of the right side.
 #
 # == functions:
 # functions have the format of name(parameters)

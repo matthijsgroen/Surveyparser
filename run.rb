@@ -2,15 +2,14 @@
 
 require 'lib/runner.rb'
 
-parser = Runner.new :scoring_definition => "config/test6-vragen.csv",
-										:value_mapping => "config/mapping.csv",
-										:panel_document => "config/Panelleden-Onbewerkte-gegevens-10187-13865-2010526102232.csv"
-
+parser = Runner.new \
+	:scoring_definition => "config/analysis.csv",
+	:value_mapping => "config/mapping.csv",
+	:panel_document => "config/checkmarket_results.csv"
 
 # Q1 - Plaats: (1) amsterdam (2) arnhem (3) breda (4) den haag (5) diemen (6) eindhoven (7) eindhoven (campus) (8) groningen (9) hengelo (10) leeuwarden (11) maastricht (12) rotterdam (13) utrecht (14) voorburg (15) zwolle
 # Q2 - KP/IP: (1) interim professional (2) kantoorprofessional
 # Q3 - (1) bouw (2) civiel (3) ruimtelijke ontwikkeling (4) finance (5) hrm (6) ict (7) interim-management (8) legal (9) logistics & procurement (10) marketing & communicatie (11) technology
-
 
 # - Eindhoven - KP + IP - BCRO+Legal - iedereen (totaal ingevuld + niet totaal ingevuld)
 parser.run_with_filter "iedereen.html", "Eindhoven - KP + IP - BCRO+Legal - iedereen" do |filter|
