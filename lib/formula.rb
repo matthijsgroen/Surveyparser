@@ -191,12 +191,12 @@ class Formula
 			# variables
 			when :term then
 				begin
-					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.inspect}" unless input.has_key? parameters[0]
+					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.sort.inspect}" unless input.has_key? parameters[0]
 					input[parameters[0]]
 				end
 			when :negative_term then
 				begin
-					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.inspect}" unless input.has_key? parameters[0]
+					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.sort.inspect}" unless input.has_key? parameters[0]
 					-input[parameters[0]]
 				end
 			when :literal

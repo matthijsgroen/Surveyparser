@@ -101,6 +101,7 @@ class ScoringConfiguration
 			return result[0].to_i / 100.0
 		end
 		return :na if text.upcase == "N.V.T."
+		return nil
 	end
 
 	def spreadsheet_columnname index

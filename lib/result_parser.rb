@@ -58,6 +58,7 @@ class ResultParser
 
 			@results << @scoring_configuration.parse_results(data_hash, @value_mapping) if match_filter(data_hash, filter)
 		end
+		raise "Er komt niemand door het filter! #{filter.inspect}" if @results.empty?
 		@results
 	end
 
@@ -71,12 +72,13 @@ class ResultParser
 		return true if filter.empty?
 		(filter[:meta_data] || {}).each do |key, values|
 			values = [values] unless values.is_a? Array
-			return false unless values.include? data_hash[:meta_data][key]
+			return false unless values.include? data_hash[:meta_data][key].to_s
 		end
 		(filter[:question_data] || {}).each do |key, values|
 			values = [values] unless values.is_a? Array
-			return false unless values.include? data_hash[:question_data][key]
+			return false unless values.include? data_hash[:question_data][key].to_s
 		end
+		return true
 	end
 
 end
