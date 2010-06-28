@@ -19,7 +19,7 @@ class ValueMapping
 		@reverse_mapping = {}
 		data.each do |csv_row|
 			@mapping[csv_row[1].upcase] = csv_row[0].downcase.to_sym
-			@mapping[csv_row[0].upcase] = csv_row[1].downcase.to_sym  
+			@reverse_mapping[csv_row[0].upcase] = csv_row[1].downcase.to_sym  
 		end
 	end
 
