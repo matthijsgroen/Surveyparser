@@ -11,6 +11,7 @@ class Runner
 		@scoring_definition = options[:scoring_definition]
 		@value_mapping = options[:value_mapping]
 		@panel_document = options[:panel_document]
+		@panel_label_document = options[:panel_label_document]
 
 		@parser = ResultParser.new @scoring_definition, @value_mapping
 	end
@@ -24,7 +25,7 @@ class Runner
 		@parser.reset!
 		#pp @parser.scoring_rules
 
-		results = @parser.parse_results @panel_document, filter.map
+		results = @parser.parse_results @panel_document, @panel_label_document, filter.map
 		merged_result = ScoringResult.merge results
 		#pp merged_result
 
@@ -55,7 +56,6 @@ class Runner
 			@map[:meta_data][question] = answers
 		end
 	end
-
 
 end
 

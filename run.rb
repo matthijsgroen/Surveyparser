@@ -5,7 +5,8 @@ require 'lib/runner.rb'
 parser = Runner.new \
 	:scoring_definition => "config/analysis.csv",
 	:value_mapping => "config/mapping.csv",
-	:panel_document => "config/checkmarket_results.csv"
+	:panel_document => "config/checkmarket_results.csv",
+	:label_document => "config/checkmarket_results.csv"
 
 # Q1 - Plaats: (1) amsterdam (2) arnhem (3) breda (4) den haag (5) diemen (6) eindhoven (7) eindhoven (campus) (8) groningen (9) hengelo (10) leeuwarden (11) maastricht (12) rotterdam (13) utrecht (14) voorburg (15) zwolle
 # Q2 - KP/IP: (1) interim professional (2) kantoorprofessional
