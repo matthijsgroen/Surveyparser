@@ -8,7 +8,7 @@ class ScoringResult
 		@value_mapper = value_mapper
 	end
 
-	attr_reader :scores, :participant_data, :value_mapper
+	attr_reader :scores, :participant_data, :value_mapper, :title
 
 	#	@scoring_map[question_id] = {
 	#		:matrix_tile => mapped_row["matrixvak"],
@@ -159,7 +159,7 @@ class ScoringResult
 						labels << [score_row[:label], score_row[:question_score]] 
 						meta_data << {
 							:comment => score_row[:comment],
-							:participant => score_row[:participant]["Datum doorgeklikt"], # :full_name
+							:participant => score_row[:participant][:meta_data]["Datum doorgeklikt"], # :full_name
 							:score => score_row[:question_score],
 							:label => score_row[:label]
 						}
@@ -258,11 +258,11 @@ class ScoringResult
 		return true if filter.empty?
 		(filter[:meta_data] || {}).each do |key, values|
 			values = [values] unless values.is_a? Array
-			return false unless values.include? data_hash[:meta_data][key].to_s
+			return false unless values.collect(&:to_s).include? data_hash[:meta_data][key].to_s
 		end
 		(filter[:question_data] || {}).each do |key, values|
 			values = [values] unless values.is_a? Array
-			return false unless values.include? data_hash[:question_data][key].to_s
+			return false unless values.collect(&:to_s).include? data_hash[:question_data][key].to_s
 		end
 		return true
 	end

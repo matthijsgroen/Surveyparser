@@ -16,7 +16,7 @@ class Runner
 		@output_file = options[:output_file] || "resultaat.html"
 		@report_title = options[:report_title] || "Analyse rapport"
 
-		puts "Pre calculating results..."
+		print "Pre calculating results"
 		@parser = ResultParser.new @scoring_definition, @value_mapping
 		@results = @parser.parse_results @panel_document, @panel_label_document
 
@@ -33,8 +33,13 @@ class Runner
 	def write_output filename = nil
 		@output_file = filename if filename
 		puts "Writing output file: #{@output_file}"
-		
+		writer = HtmlWriter.new :title => @report_title
+		writer.add_results *@target_groups
 
+#		#puts merged_result.as_s
+		File.open(@output_file, 'w') do |output_file|
+			output_file.puts writer.output
+		end
 	end
 
 	class FilterReader

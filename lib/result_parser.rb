@@ -75,9 +75,11 @@ class ResultParser
 
 			data_hash[:meta_data][:full_name] = "#{data_hash[:meta_data]["Voornaam"]} " +
 				"#{data_hash[:meta_data]["Optioneel veld 1"]} #{data_hash[:meta_data]["Achternaam"]}" 
+			print "."
 
 			@results << @scoring_configuration.parse_results(data_hash, @value_mapping)
 		end
+		puts " "
 		@results
 	end
 
