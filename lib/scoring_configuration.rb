@@ -60,6 +60,7 @@ class ScoringConfiguration
 
 					:question => mapped_row["vraag"],
 					:question_id => row_index,
+					:question_label_id => mapped_row["codering"],
 
 					:formula => Formula.new(answer_formula),
 					:group_formula => Formula.new(group_formula),
@@ -75,10 +76,10 @@ class ScoringConfiguration
 
 	def parse_results data_hash, value_mapper
 		#puts "parsing results for #{data_hash[:meta_data]["Voornaam"]}"
-		result = ScoringResult.new		
+		result = ScoringResult.new data_hash, value_mapper		
 		@scoring_rules.each_with_index do |q_data, row_index|
 			begin
-				result.plot_data q_data, data_hash, value_mapper
+				result.plot_data q_data
 			rescue StandardError => e
 				puts "Error occured on line #{row_index + 2}: #{e}"
 				raise

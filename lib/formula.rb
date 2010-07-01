@@ -77,7 +77,8 @@ class Formula
 		begin
 			Formula.calculate(@calculation, input)
 		rescue StandardError => e
-			raise "Error executing formula: #{Formula.calculation_to_s(@calculation, input)} : #{e.message}"
+			puts "Error executing formula: #{Formula.calculation_to_s(@calculation, input)} : #{e.message}"
+			raise
 		end
 	end
 
@@ -174,7 +175,7 @@ class Formula
 			when :select then
 				begin
 					index = parameters.shift
-					index ? parameters[index - 1] : nil
+					index.is_a?(Numeric) ? parameters[index - 1] : nil
 				end
 			when :avg then
 				begin

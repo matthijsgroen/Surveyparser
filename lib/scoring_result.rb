@@ -1,11 +1,14 @@
 class ScoringResult
 
-	def initialize
+	def initialize participant_data, value_mapper, title = "Naamloos"
 		@scores = []
 		@score_tree = nil
+		@title = title
+		@participant_data = participant_data
+		@value_mapper = value_mapper
 	end
 
-	attr_reader :scores
+	attr_reader :scores, :participant_data, :value_mapper
 
 	#	@scoring_map[question_id] = {
 	#		:matrix_tile => mapped_row["matrixvak"],
@@ -15,13 +18,15 @@ class ScoringResult
 	#		:indicator_conversion => convert_score_text(mapped_row["score in indicator"]),
 	#
 	#		:question => mapped_row["vraag"],
+	#		:question_id => row_index,
+	#		:question_label_id => mapped_row["codering"],
 	#
 	#		:formula => Formula.new(answer_formula),
 	#		:group_formula => Formula.new(group_formula),
 	#
 	#		:row_values => mapped_row
 	#	}
-	def plot_data question_data, result_row, value_mapper
+	def plot_data question_data
 		raise "No conversion rate given for \"score in matrixvak\"" if question_data[:matrix_conversion].nil?
 		raise "No conversion rate given for \"score in indicator\"" if question_data[:indicator_conversion].nil? # no scoring known for this question
 		#puts question_data[:question]
@@ -29,17 +34,19 @@ class ScoringResult
 		calculation_data = question_data[:row_values].merge :value => nil
 		formula = question_data[:formula]
 
-		result_row[:question_data].each do |key, data|
-			new_key = value_mapper.map key.upcase
-			if new_key
-				if data.to_i.to_s == data
-					calculation_data[new_key] = data.to_i
-				elsif data.to_f.to_s == data
-					calculation_data[new_key] = data.to_f
-				elsif "%.2f" % data.to_f == data
-					calculation_data[new_key] = data.to_f
-				else
-					calculation_data[new_key] = data
+		participant_data[:question_data].each do |key, data|
+			new_keys = value_mapper.map key.upcase
+			if new_keys
+				new_keys.each do |new_key|
+					if data.to_i.to_s == data
+						calculation_data[new_key] = data.to_i
+					elsif data.to_f.to_s == data
+						calculation_data[new_key] = data.to_f
+					elsif "%.2f" % data.to_f == data
+						calculation_data[new_key] = data.to_f
+					else
+						calculation_data[new_key] = data
+					end
 				end
 			end
 		end
@@ -50,10 +57,28 @@ class ScoringResult
 			puts "Error doing calculation: #{formula.to_string calculation_data} #{error}"
 			raise
 		end
+		#puts question_data[:question_label_id]
+
+		field_text = nil
+		unless sustainability_score.nil?
+			str_value = case sustainability_score
+				when Numeric: str_value = "%.2f" % sustainability_score
+				when String: str_value = sustainability_score
+			end
+			field_text = str_value
+			if fields = @value_mapper.reverse_map(question_data[:question_label_id])
+				fields.each do |field|
+					label = participant_data[:label_data][field.to_s]
+					field_text = "#{label} (#{str_value})" if label
+				end
+			end
+		end
+		#puts field_text
+
 		#return if sustainability_score.nil? # no opinion / don't know
 		comment = "#{sustainability_score} = #{formula.solve(calculation_data)}"
 
-		add_scores result_row[:meta_data], question_data, sustainability_score, comment
+		add_scores question_data, sustainability_score, comment, field_text
 	end
 
 	#	@scoring_map[question_id] = {
@@ -70,13 +95,14 @@ class ScoringResult
 	#
 	#		:row_values => mapped_row
 	#	}
-	def add_scores meta_data, question_data, question_score, comment
+	def add_scores question_data, question_score, comment, field_text
 		@scores << {
-			:participant => meta_data,
+			:participant => participant_data,
 			:question_data => question_data.dup,
 
 			:question_score => question_score,
-			:comment => comment
+			:comment => comment,
+			:label => field_text
 		}
 		@score_tree = nil
 	end
@@ -92,123 +118,14 @@ class ScoringResult
 		end
 	end
 
-	def as_html(*args)
-		options = args.pop if args.last.is_a? Hash 
-		result = <<-EOS
-			<html>
-			<head>
-				<title>Enquete: #{options[:title] || "Resultaat"}</title>
-		    <script src="javascripts/jquery.js" type="text/javascript"></script>
-		    <script src="javascripts/application.js" type="text/javascript"></script>
-    		<link href="stylesheets/application.css" media="screen" rel="stylesheet" type="text/css" />
-			</head>
-			<body>
-			<h1>#{options[:title] || "Resultaat"}</h1>
-
-			<ul class="matrix-tiles">
-		EOS
-		score_tree.each do |matrix, data|
-			if args.include? matrix or args.empty?
-#				if data[:m_rule] == :na
-					group_result = "" #"(#{"%.2f" % data[:score]})"
-#				else
-#					group_result = "(#{"%.2f" % (data[:score] * 100.0)}% / 100%)"
-#				end
-				result += "<li><span class=\"matrix-tile\">#{matrix} #{group_result}</span>\n"
-
-				result += "<ul class=\"indicators\">"
-				score_tree[matrix][:indicators].each do |indicator, ind_data|
-#					if ind_data[:i_rule] == :na  or ind_data[:conversion] == :na
-						group_result = "" #"(#{"%.2f" % ind_data[:score]})"
-#					else
-#						group_result = "(#{"%.2f" % (ind_data[:score] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (ind_data[:conversion] * 100.0)}%)"
-#					end
-					result += "<li><span class=\"indicator\">#{indicator} #{group_result}</span>\n"
-
-					result += "<ul class=\"questions\">"
-					score_tree[matrix][:indicators][indicator][:questions].each do |question, q_data|
-
-						statistics = ""
-						statistics += "<h3>Statistieken</h3>"
-						statistics += "<dl>"
-						statistics += "<dt>Antwoorden:</dt><dd>#{q_data[:total_amount]}</dd>"
-						statistics += "<dt>Antwoorden voor berekening:</dt><dd>#{q_data[:amount]}</dd>"
-						statistics += "<dt>Geen mening/weet niet:</dt><dd>#{q_data[:total_amount] - q_data[:amount]}</dd>"
-						statistics += "<dt>Gemiddeld antwoord:</dt><dd>#{"%.2f" % q_data[:average]}</dd>" if q_data[:average]
-						statistics += "<dt>Groeps antwoord:</dt><dd>#{q_data[:group_score]}<p class=\"comment\">#{q_data[:group_score_comment]}</p></dd>" if q_data[:group_score]
-						statistics += "</dl>"
-
-
-						if q_data[:cloud]
-							cloud_line = []
-							max = 0
-							q_data[:cloud].each { |key, value| max = value if value > max }
-							statistics += "<table><caption>Antwoordverdeling</caption>"
-							q_data[:cloud].keys.sort.each do |key|
-								statistics += "<tr><th>#{key == "" ? "Geen mening / weet niet" : key}</th><td><div class=\"bar\" style=\"width: #{((q_data[:cloud][key] / max.to_f) * 300.0).round}px\"></div>#{q_data[:cloud][key]} (#{"%.2f" % ((q_data[:cloud][key] / q_data[:amount].to_f) * 100.0)}%)</td></tr>"
-							end
-							statistics += "</table>"
-						end
-
-						group_result = ""
-
-#						if q_data[:score]
-#							group_result = "(#{"%.2f" % q_data[:score]} uit #{q_data[:amount]}) = (#{"%.4f" % q_data[:sum]} / #{q_data[:amount]})"
-#						else
-#							factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) *
-#								(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
-#							group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]}) = (#{"%.4f" % q_data[:sum]} / #{q_data[:amount]})"
-#						end
-
-						result += "<li><span class=\"question\">#{(question || "(geen vraag)").gsub("\n", " ")} #{group_result}</span>\n"
-						result += "<div class=\"statistics\">"
-						result += statistics
-
-						result += "<h4>toon individuele scores</h4>"
-						result += "<div class=\"scores\">"
-						result += "<ol>"
-						(q_data[:meta_data] || []).each_with_index do |meta_data, index|
-							result += "<li>#{meta_data[:score]} (#{meta_data[:participant]})"
-							result += "<p class=\"comment\">#{comment_to_html(meta_data[:comment])}</p>\n" if meta_data[:comment]
-							result += "</li>\n"
-						end
-						result += "</ol></div>"
-						result += "</div>"
-
-						result += "</li>"
-					end
-					result += "</ul>"
-					result += "</li>"
-				end
-				result += "</ul>"
-				result += "</li>"
-			end
-		end
-		result += <<-EOS
-			</ul>
-			</body>
-			</html>
-		EOS
-
-		result
-	end
-
-	def comment_to_html comment
-		r = comment.gsub "(", "<span class=\"group\">(</span>"
-		r = r.gsub ")", "<span class=\"group\">)</span>"
-		r = r.gsub ",", ", "
-		r = r.gsub /\[([^\]]+)\]/, "[<span class=\"value\">\\1</span>]"
-		r
-	end
-
-	def merge other_result
-		@scores += other_result.scores
+	def merge other_result, filter = {}
+		@scores += other_result.scores if match_filter(other_result.participant_data, filter)
 		@score_tree = nil
 	end
 
-	def self.merge result_list
-		result = self.new
-		result_list.each { |single_result| result.merge single_result }
+	def self.merge_with_filter result_list, filter = {}, title = "Naamloos"
+		result = self.new nil, nil, title
+		result_list.each { |single_result| result.merge single_result, filter }
 		result
 	end
 
@@ -234,14 +151,17 @@ class ScoringResult
 			q_id = participant_question_score[:question_data][:question_id]
 			unless question_scores[q_id]
 				scores = []
+				labels = []
 				meta_data = []
 				@scores.collect do |score_row|
 					if score_row[:question_data][:question_id] == q_id
 						scores << score_row[:question_score]
+						labels << [score_row[:label], score_row[:question_score]] 
 						meta_data << {
 							:comment => score_row[:comment],
-							:participant => score_row[:participant][:full_name],
-							:score => score_row[:question_score]
+							:participant => score_row[:participant]["Datum doorgeklikt"], # :full_name
+							:score => score_row[:question_score],
+							:label => score_row[:label]
 						}
 					end
 				end
@@ -253,8 +173,9 @@ class ScoringResult
 					:matrix_conversion => participant_question_score[:question_data][:matrix_conversion],
 					:indicator_conversion => participant_question_score[:question_data][:indicator_conversion],
 					:question_data => participant_question_score[:question_data],
-
+					:question_code => participant_question_score[:question_data][:question_label_id], 
 					:scores => scores,
+					:labels => labels,
 					:meta_data => meta_data,
 					:total_amount => scores.length,
 					:amount => scores.compact.length
@@ -268,9 +189,11 @@ class ScoringResult
 				rescue TypeError
 				end
 				cloud = {}
-				question_scores[q_id][:scores].each do |term|
-					cloud_term = term.to_s.downcase
-					cloud.has_key?(cloud_term) ? cloud[cloud_term] += 1 : cloud[cloud_term] = 1
+				question_scores[q_id][:labels].each do |term|
+					label, score = *term
+					cloud_term = term.to_s
+					cloud[label] ||= [score, 0]
+					cloud[label][1] += 1
 				end
 				question_scores[q_id][:cloud] = cloud
 
@@ -293,6 +216,7 @@ class ScoringResult
 				:cloud => data[:cloud],
 				:meta_data => data[:meta_data],
 				:conversion => data[:indicator_conversion],
+				:question_code => data[:question_code],
 				:question_type => data[:question_type],
 				:amount => data[:amount],
 				:total_amount => data[:total_amount],
@@ -330,4 +254,17 @@ class ScoringResult
 		tree
 	end
 
+	def match_filter data_hash, filter
+		return true if filter.empty?
+		(filter[:meta_data] || {}).each do |key, values|
+			values = [values] unless values.is_a? Array
+			return false unless values.include? data_hash[:meta_data][key].to_s
+		end
+		(filter[:question_data] || {}).each do |key, values|
+			values = [values] unless values.is_a? Array
+			return false unless values.include? data_hash[:question_data][key].to_s
+		end
+		return true
+	end
+	
 end
