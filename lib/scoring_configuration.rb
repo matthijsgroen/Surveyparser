@@ -5,6 +5,19 @@ class ScoringConfiguration
 
 	DEFAULT_FORMULA = "value"
 
+	COL_M = "matrixvak"
+	COL_MS = "score in matrixvak"
+	COL_I = "indicator"
+	COL_IS = "score in indicator"
+	COL_Q = "vraag"
+	COL_FG = "groepsformule"
+	COL_FQ = "antwoordformule"
+	COL_CODE = "codering"
+	COL_MIN = "score groepsformule [min]"
+	COL_MAX = "score groepsformule [max]"
+
+	COLUMN_LIST = [COL_M, COL_MS, COL_I, COL_IS, COL_Q, COL_FG, COL_FQ, COL_CODE, COL_MIN, COL_MAX]
+
 	attr_reader :scoring_rules
 
 	def initialize configuration_filename
@@ -12,6 +25,7 @@ class ScoringConfiguration
 		@scoring_rules = []
 
 		names = data.shift.collect(&:downcase).collect(&:strip)
+		COLUMN_LIST.each { |name|	raise "Column '#{name}' not found" unless names.include? name }
 
 		# Kolom lijst:
 		#	matrixvak
@@ -43,26 +57,26 @@ class ScoringConfiguration
 			end
 			
 			begin
-				answer_formula = mapped_row["antwoordformule"]
+				answer_formula = mapped_row[COL_FQ]
 				answer_formula ||= DEFAULT_FORMULA
 				answer_formula = DEFAULT_FORMULA if answer_formula == ""
 
-				group_formula = mapped_row["groepsformule"]
+				group_formula = mapped_row[COL_FG]
 				group_formula ||= DEFAULT_FORMULA
 				group_formula = DEFAULT_FORMULA if group_formula == ""
 
 				@scoring_rules << {
-					:matrix_tile => mapped_row["matrixvak"],
-					:matrix_conversion => convert_score_text(mapped_row["score in matrixvak"]),
+					:matrix_tile => mapped_row[COL_M],
+					:matrix_conversion => convert_score_text(mapped_row[COL_MS]),
 
-					:indicator => mapped_row["indicator"],
-					:indicator_conversion => convert_score_text(mapped_row["score in indicator"]),
+					:indicator => mapped_row[COL_I],
+					:indicator_conversion => convert_score_text(mapped_row[COL_IS]),
 
-					:question => mapped_row["vraag"],
+					:question => mapped_row[COL_Q],
 					:question_id => row_index,
-					:question_label_id => mapped_row["codering"],
-					:question_scoring => { :min => mapped_row["score groepsformule [min]"],
-																 :max => mapped_row["score groepsformule [max]"] },
+					:question_label_id => mapped_row[COL_CODE],
+					:question_scoring => { :min => mapped_row[COL_MIN],
+																 :max => mapped_row[COL_MAX] },
 
 					:formula => Formula.new(answer_formula),
 					:group_formula => Formula.new(group_formula),

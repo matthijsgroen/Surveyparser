@@ -148,7 +148,7 @@ class Formula
 			parameter.is_a?(Array) ? calculate(parameter, input) : parameter
 		end
 
-		return nil if (parameters[0].nil? or parameters[1].nil?) and [:add, :subtract, :times, :divide].include? operation
+		return nil if (parameters[0].nil? or parameters[1].nil?) and [:add, :subtract, :times, :divide, :power].include? operation
 
 		case operation
 			when :add then
@@ -192,13 +192,15 @@ class Formula
 			# variables
 			when :term then
 				begin
-					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.sort.inspect}" unless input.has_key? parameters[0]
+					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.collect(&:to_s).sort.inspect}" unless input.has_key? parameters[0]
 					input[parameters[0]]
 				end
 			when :negative_term then
 				begin
 					raise "Can't find  term: #{parameters[0]}. Has keys: #{input.keys.sort.inspect}" unless input.has_key? parameters[0]
-					-input[parameters[0]]
+					val = input[parameters[0]]
+					return nil unless val
+					- val
 				end
 			when :literal
 				parameters[0]
