@@ -10,6 +10,7 @@ class HtmlWriter
 	end
 
 	def output
+		abc = ('a'..'z').to_a;
 		result = <<-EOS
 			<html>
 			<head>
@@ -26,35 +27,33 @@ class HtmlWriter
 		@parsed_tree.keys.sort { |a, b| a.upcase <=> b.upcase }.each do |matrix_title|
 			puts "Writing: #{matrix_title}"
 			result += "<li><h3 class=\"matrix-title\">#{matrix_title}</h3>"
-
-			statistics = "<table class=\"division\"><caption>Matrixresultaat</caption>"
-			@parsed_tree[matrix_title][:group_results].each do |matrix_data|
-  			statistics += "<tr><th>#{matrix_data[:title] || "Naamloos"}</th><td><div class=\"bar\" style=\"width: #{(matrix_data[:result] * 300.0).round}px\"></div>(#{"%.2f" % (matrix_data[:result] * 100.0)}%)</td></tr>"
-			end
-			statistics += "</table>"
-
+			statistics = progress_chart(@parsed_tree[matrix_title][:group_results], "Matrixresultaat")
 			result += "<div class=\"matrix-content\">"
 			result += statistics
 			result += "<ul class=\"indicators\">"
 			@parsed_tree[matrix_title][:indicators].keys.sort { |a, b| a.upcase <=> b.upcase }.each do |indicator_title|
-				result += "<li><h3 class=\"indicator-title\">#{indicator_title}</h3>"
-
-				statistics = "<table class=\"division\"><caption>Indicatorresultaat</caption>"
-				@parsed_tree[matrix_title][:indicators][indicator_title][:indicator_results].each do |indicator_data|
-					statistics += "<tr><th>#{indicator_data[:title] || "Naamloos"}</th><td><div class=\"bar\" style=\"width: #{(indicator_data[:result] * 300.0).round}px\"></div>(#{"%.2f" % (indicator_data[:result] * 100.0)}%)</td></tr>"
-				end
-				statistics += "</table>"
-
+				i_data = @parsed_tree[matrix_title][:indicators][indicator_title][:indicator_results]
+				result += "<li><h3 class=\"indicator-title\">#{indicator_title} #{i_data[0][:scale] == :na ? "" : "(#{(i_data[0][:scale] * 100.0)}%)"}</h3>"
 				result += "<div class=\"indicator-content\">"
-				result += statistics
+				result += progress_chart(i_data, "Indicatorresultaat")
 				result += "<ul class=\"questions\">"
 				@parsed_tree[matrix_title][:indicators][indicator_title][:questions].keys.sort { |a, b| a.upcase <=> b.upcase }.each do |question_title|
-					result += "<li><h3 class=\"question-title\">#{question_title}</h3>"
+					q_data = @parsed_tree[matrix_title][:indicators][indicator_title][:questions][question_title]
+					result += "<li><h3 class=\"question-title\">#{question_title} #{q_data[0][:scale] == :na ? "" : "(#{(q_data[0][:scale] * 100.0)}%)"}</h3>"
 					result += "<div class=\"question-content\">"
+					result += progress_chart(q_data, "vraagresultaat")
+					result += "<ul class=\"tabbar\">"
+					tabs = ""
+					first_tab = true
 					@parsed_tree[matrix_title][:indicators][indicator_title][:questions][question_title].each do |question_data|
-						result += "<h3>#{question_data[:title]}</h3>#{question_data[:result]}"
+						key = ""; 6.times { |i| key += abc[rand(abc.length)] }
 
+						result += "<li class=\"tab #{first_tab ? "selected" : ""}\"><a href=\"##{key}\">#{question_data[:title]}</a></li>"
+						tabs += "<div class=\"detail_tab\" style=\"#{first_tab ? "" : "display: none;"}\" id=\"#{key}\"><h3>#{question_data[:title]}</h3>#{question_data[:content]}</div>"
+						first_tab = false
 					end
+					result += "</ul>"
+					result += tabs
 					result += "</div>"
 					result += "</li>"
 				end
@@ -78,36 +77,21 @@ class HtmlWriter
 
 	def comment_to_html comment
 		comment
-#		comment.gsub("(", "<span class=\"group\">(</span>").
-#			gsub(")", "<span class=\"group\">)</span>").
-#			gsub(",", ", ").gsub(/\[([^\]]+)\]/, "[<span class=\"value\">\\1</span>]")
 	end
 
 	def add_score_tree group
 		group.score_tree.each do |matrix, data|
 			#puts matrix
 			@parsed_tree[matrix] ||= { :group_results => [], :indicators => {} }
-#				if data[:m_rule] == :na
-			group_result = 0 #"(#{"%.2f" % data[:score]})"
-#				else
-#					group_result = "(#{"%.2f" % (data[:score] * 100.0)}% / 100%)"
-#				end
 
-			@parsed_tree[matrix][:group_results] << { :title => group.title, :result => group_result }
+			@parsed_tree[matrix][:group_results] << { :title => group.title, :progress => data[:progress] }
 			group.score_tree[matrix][:indicators].each do |indicator, ind_data|
 				#puts "- #{indicator}"				
-				#if ind_data[:i_rule] == :na  or ind_data[:conversion] == :na
-				group_result = 0 #"(#{"%.2f" % ind_data[:score]})"
-#				else
-#					group_result = "(#{"%.2f" % (ind_data[:score] * ind_data[:conversion] * 100.0)}% / #{"%.2f" % (ind_data[:conversion] * 100.0)}%)"
-#				end
-
 				@parsed_tree[matrix][:indicators][indicator] ||= { :indicator_results => [], :questions => {}}
-				@parsed_tree[matrix][:indicators][indicator][:indicator_results] <<	{ :title => group.title, :result => group_result }
+				@parsed_tree[matrix][:indicators][indicator][:indicator_results] <<	{ :title => group.title, :progress => ind_data[:progress], :scale => ind_data[:conversion] }
 
 				group.score_tree[matrix][:indicators][indicator][:questions].each do |question, q_data|
 					#puts "-- #{question}"
-
 					statistics = ""
 					statistics += "<h3>Statistieken</h3>"
 					statistics += "<dl>"
@@ -149,15 +133,6 @@ class HtmlWriter
 						statistics += "</table>"
 					end
 
-					group_result = ""
-#					if q_data[:score]
-#						group_result = "(#{"%.2f" % q_data[:score]} uit #{q_data[:amount]}) = (#{"%.4f" % q_data[:sum]} / #{q_data[:amount]})"
-#					else
-#						factor = (q_data[:conversion] == :na ? 1.0 : q_data[:conversion]) *
-#							(ind_data[:conversion] == :na ? 1.0 : ind_data[:conversion]) * 100.0
-#						group_result = "(#{"%.2f" % (q_data[:score] * factor)}% / #{"%.2f" % factor}% uit #{q_data[:amount]}) = (#{"%.4f" % q_data[:sum]} / #{q_data[:amount]})"
-#					end
-
 					result = ""
 					result += "<div class=\"statistics\">"
 					result += statistics
@@ -174,11 +149,57 @@ class HtmlWriter
 
 					@parsed_tree[matrix][:indicators][indicator][:questions][question] ||= []
 					@parsed_tree[matrix][:indicators][indicator][:questions][question] << {
-						:title => group.title, :result => result
+						:title => group.title, :content => result, :progress => q_data[:progress], :scale => q_data[:conversion]
 					}
 				end
 			end
 		end
+	end
+
+	def progress_chart(data, title)
+		result_rows = 0
+		statistics = "<table class=\"division\"><caption>#{title}</caption>"
+		data.each do |progress_row|
+			statistics += "<tr><th>#{progress_row[:title] || "Naamloos"}</th>"
+			if progress_row[:progress] == :na
+				statistics += "<td colwidth=\"4\">Geen resultaat</td>"
+			else
+				begin
+					result = "<td>#{progress_row[:progress][:min]}</td>"
+
+					if (progress_row[:progress][:min] < 0)
+						result += "<td class=\"barbox\">"
+						if (progress_row[:progress][:progress] < 0)
+							result += "(#{"%.2f" % progress_row[:progress][:progress]})"
+							result += "<div class=\"bar\" style=\"width: #{((progress_row[:progress][:progress].to_f / progress_row[:progress][:min].to_f) * 300.0).round}px\"></div>"
+						end
+						result += "</td>"
+					end
+					if (progress_row[:progress][:max] > 0)
+						result += "<td class=\"barbox\">"
+						if (progress_row[:progress][:progress] >= 0)
+							p = progress_row[:progress][:progress].to_f
+							p = p - progress_row[:progress][:min] if progress_row[:progress][:min] > 0.0
+
+							result += "<div class=\"bar\" style=\"width: #{((p / progress_row[:progress][:max].to_f) * 300.0).round}px\"></div>"
+							result += "(#{"%.2f" % progress_row[:progress][:progress]})"
+						end				
+						result += "</td>"
+					end
+
+					result += "<td>#{progress_row[:progress][:max]}</td>"
+					result_rows += 1
+					statistics += result
+				rescue
+					statistics += "<td colwidth=\"4\">Geen resultaat</td>"
+				end
+			end
+			statistics += "</tr>"
+		end
+		statistics += "</table>"
+
+		return "" if result_rows == 0
+		statistics
 	end
 
 end

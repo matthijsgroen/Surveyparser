@@ -116,6 +116,7 @@ class ScoringResult
 		if result = text.match(/^(-?\d+)$/i)
 			return [result[0].to_i, :numeric]
 		end
+		return [nil, nil]
 	end
 
 	def merge other_result, filter = {}
@@ -196,7 +197,6 @@ class ScoringResult
 					cloud[label][1] += 1
 				end
 				question_scores[q_id][:cloud] = cloud
-
 			end
 		end
 		#puts question_scores.inspect
@@ -209,6 +209,8 @@ class ScoringResult
 			formula = data[:question_data][:group_formula]
 			group_score = formula.call calculation_data
 			group_score_comment = formula.solve calculation_data
+
+			progress = calculate_progress(group_score, data)
 
 			tree[data[:matrix_tile]][:indicators][data[:indicator]][:questions][data[:question]] = {
 				:score => data[:average],
@@ -223,35 +225,57 @@ class ScoringResult
 				:sum => data[:sum],
 				:average => data[:average],
 				:group_score => group_score,
-				:group_score_comment => group_score_comment
+				:group_score_comment => group_score_comment,
+				:progress => progress
 			}
 		end
 
 		tree.each do |key, matrix_data|
+			mp = nil
 			m_score = 0
 			matrix_data[:indicators].each do |indicator, indicator_data|
+				ip = nil
 				i_score = 0
 				indicator_data[:questions].each do |q, question_data|
-					if question_data[:score]
-						converted_score = case question_data[:conversion]
-							when :na then question_data[:score]
-							when Float then question_data[:score] * question_data[:conversion]
+					if question_data[:progress].is_a? Hash and not question_data[:conversion] == :na
+						if ip.nil?
+							ip = { :min => question_data[:progress][:min], :max => question_data[:progress][:max] }
 						end
-						i_score += converted_score
+						if ip[:min] == question_data[:progress][:min] and ip[:max] == question_data[:progress][:max]
+							i_score += question_data[:progress][:progress] * question_data[:conversion]
+						end
 					end
 				end
-				tree[key][:indicators][indicator][:score] = i_score
+				ip[:progress] = i_score unless ip.nil?
+				tree[key][:indicators][indicator][:progress] = ip || :na
 
-				converted_score = case indicator_data[:conversion]
-					when :na then i_score
-					when Float then i_score * indicator_data[:conversion]
+				if ip.is_a? Hash and not indicator_data[:conversion] == :na
+					if mp.nil?
+						mp = { :min => ip[:min], :max => ip[:max] }
+					end
+					if mp[:min] == ip[:min] and mp[:max] == ip[:max]
+						m_score += ip[:progress] * indicator_data[:conversion]
+					end
 				end
-				m_score += converted_score
 			end
-			tree[key][:score] = m_score
+			mp[:progress] = m_score unless mp.nil?
+			tree[key][:progress] = mp || :na
 		end
 
 		tree
+	end
+
+	def calculate_progress(score, info)
+		#puts "min: #{info[:question_data][:question_scoring][:min]} max: #{info[:question_data][:question_scoring][:max]}"
+		
+		min = convert_score_text info[:question_data][:question_scoring][:min]
+		max = convert_score_text info[:question_data][:question_scoring][:max]
+		return :na unless min[1] == :numeric and max[1] == :numeric
+		{ 
+			:min => min[0],
+			:max => max[0],
+			:progress => score	
+		}
 	end
 
 	def match_filter data_hash, filter

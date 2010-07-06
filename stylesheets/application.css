@@ -80,3 +80,43 @@ h3 {
   color: #888888;
   font-size: 10px;
 }
+td.barbox {
+  width: 350px;
+}
+
+.tabbar {
+  display: block;
+  border-bottom: 1px solid #ddd;
+  padding: 0;
+  margin: 4px 0 0 0;
+}
+
+.tabbar li {
+  display: inline-block;
+  border: 1px solid #ddd;
+  background-color: #eee;
+  padding: 3px;
+  margin: 0 2px -1px 2px;
+  font-size: 10px;
+}
+.tabbar li.selected {
+  background-color: white;
+  border-color: #888;
+  border-bottom: 1px solid white;
+}
+
+.tabbar li a {
+  color: #333;
+  text-decoration: none;
+}
+.tabbar li a:hover {
+  color: black;
+}
+.detail_tab {
+  border-left: 1px solid #888;
+  border-right: 1px solid #888;
+  border-bottom: 1px solid #888;
+  margin-bottom: 5px;
+  padding: 10px;
+}
+

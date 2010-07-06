@@ -28,7 +28,6 @@ parser.run_with_filter "totaal ingevuld" do |filter|
 	filter.meta_data "Einde bereikt", 1
 end
 
-
 # - Eindhoven - IP - BCRO+Legal - totaal ingevuld
 parser.run_with_filter "IP - totaal ingevuld" do |filter|
 	filter.question "q1", "6" # Eindhoven

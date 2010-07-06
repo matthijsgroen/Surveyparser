@@ -61,6 +61,8 @@ class ScoringConfiguration
 					:question => mapped_row["vraag"],
 					:question_id => row_index,
 					:question_label_id => mapped_row["codering"],
+					:question_scoring => { :min => mapped_row["score groepsformule [min]"],
+																 :max => mapped_row["score groepsformule [max]"] },
 
 					:formula => Formula.new(answer_formula),
 					:group_formula => Formula.new(group_formula),
