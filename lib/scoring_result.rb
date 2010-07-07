@@ -238,11 +238,11 @@ class ScoringResult
 				i_score = 0
 				indicator_data[:questions].each do |q, question_data|
 					if question_data[:progress].is_a? Hash and not question_data[:conversion] == :na
-						if ip.nil?
-							ip = { :min => question_data[:progress][:min], :max => question_data[:progress][:max] }
-						end
+						ip = { :min => question_data[:progress][:min], :max => question_data[:progress][:max] } if ip.nil?
+
+						#puts "#{@title} - #{q} #{question_data[:progress].inspect}" if key == "invloed"
 						if ip[:min] == question_data[:progress][:min] and ip[:max] == question_data[:progress][:max]
-							i_score += question_data[:progress][:progress] * question_data[:conversion]
+							i_score += question_data[:progress][:progress] * question_data[:conversion] unless question_data[:progress][:progress].nan?
 						end
 					end
 				end
