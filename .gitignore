@@ -1,5 +1,6 @@
 .idea
 config/*.csv
 config/*.xlsx
-resultaat.txt
 *.html
+*.zip
+*.pdf
