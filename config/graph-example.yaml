@@ -2,18 +2,35 @@ matrix:
   type: spider
   title: "Spinneweb"
   axis:
-    aut: "Autonomie"
-    klim: "Bedrijfsklimaat"
-    bel: "Beleid"
-    besl: "Besluitvorming"
-    des: "Deskundigheid"
-    hou: "Houding"
-    inv:
+    -
+      key: aut
+      name: "Autonomie"
+    -
+      key: klim
+      name: "Bedrijfsklimaat"
+    -
+      key: bel
+      name: "Beleid"
+    -
+      key: besl
+      name: "Besluitvorming"
+    -
+      key: des
+      name: "Deskundigheid"
+    -
+      key: hou
+      name: "Houding"
+    -
+      key: inv
       name: "Invloed"
       min: -15
       max: 15
-    org: "Organisatie"
-    sam: "Samenwerking"
+    -
+      key: org
+      name: "Organisatie"
+    -
+      key: sam
+      name: "Samenwerking"
   data:
     -
       name: "Iedereen"

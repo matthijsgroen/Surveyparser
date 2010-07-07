@@ -26,6 +26,7 @@ class Spider
 			})
 		graph_data["data"].each_with_index do |settings, index|
 			y = middle_y - (max_length + 30.0 + (index * 20.0))
+			@pdf.fill_color = "000000"
 			@pdf.text_box(settings["name"],
 						 :at => [20, y],
 						 :size => 12,
@@ -33,11 +34,8 @@ class Spider
 			@pdf.line_width = 0.5
 			@pdf.fill_color = settings["color"]
 			@pdf.fill_and_stroke_rectangle([4, y], 10, 10)
-			@pdf.fill_color = "000000"
 
-			settings["values"].each do |key, value|
-				draw_line value, settings["color"], @axis[key.to_sym]
-			end
+			draw_values settings["values"], settings["color"]
 		end
 	end
 
@@ -53,19 +51,22 @@ class Spider
 
 	def build_axis(axis_data, options )
 		@axis = {}
-		axis_keys = []
-		axis_data.each do |key, data|
-			axis_keys << key.to_sym
-			data = { "name" => data, "min" => 0.0, "max" => 1.0 } if data.is_a? String
-			@axis[key.to_sym] = {
+		@axis_keys = []
+		axis_data.each do |data|
+			@axis_keys << data["key"].to_sym
+
+			data["min"] ||= 0.0
+			data["max"] ||= 1.0
+
+			@axis[data["key"].to_sym] = {
 					:name => data["name"],
 					:min => data["min"],
 					:max => data["max"],
 				}
 		end
-		steps = axis_keys.length
+		steps = @axis_keys.length
 
-		axis_keys.each_with_index do |key, index|
+		@axis_keys.each_with_index do |key, index|
 			angle = angle_part(steps, index)
 			angle_deg = angle * DEG_RAD
 
@@ -100,7 +101,6 @@ class Spider
 			write_axis @axis[key][:min], @axis[key]
 			write_axis 0, @axis[key] if @axis[key][:max] > 0 and @axis[key][:min] < 0
 			label_axis @axis[key]
-
 		end
 	end
 
@@ -119,17 +119,38 @@ class Spider
 					 :rotate_around => :upper_left)
 	end
 
-	def draw_line value, color, axis_info
-		c = axis_info[:calculations]
-		scale = (value.to_f - axis_info[:min]) / (axis_info[:max] - axis_info[:min])
-		height = (scale * ((c[:max_span] - 5) - (c[:margin_bottom] + 10))) + (c[:margin_bottom] + 10)
+	def draw_values values, color
+		first = nil
+		last = nil
+		@axis_keys.reverse.each do |key|
+			c = @axis[key][:calculations]
+			value = values[key.to_s].to_f
+			scale = (value - @axis[key][:min]) / (@axis[key][:max] - @axis[key][:min])
+			height = (scale * ((c[:max_span] - 5) - (c[:margin_bottom] + 10))) + (c[:margin_bottom] + 10)
 
-		@pdf.stroke_color color
-		@pdf.line_width = 1.0
-		@pdf.move_to c[:middle][0] + (c[:left_side_angle][0] * height), c[:middle][1] + (c[:left_side_angle][1] * height)
-		@pdf.line_to c[:middle][0] + (c[:right_side_angle][0] * height), c[:middle][1] + (c[:right_side_angle][1] * height)
-		@pdf.stroke
+			first = height if first.nil?
 
+			@pdf.fill_color color
+			write_axis value, @axis[key]
+
+			unless last.nil?
+				@pdf.stroke_color color
+				@pdf.line_width = 1.0
+				@pdf.move_to c[:middle][0] + (c[:left_side_angle][0] * height), c[:middle][1] + (c[:left_side_angle][1] * height)
+				@pdf.line_to c[:middle][0] + (c[:right_side_angle][0] * last), c[:middle][1] + (c[:right_side_angle][1] * last)
+				@pdf.stroke
+			end
+			last = height
+		end
+
+		if last and first
+			c = @axis[@axis_keys.reverse[0]][:calculations]
+			@pdf.stroke_color color
+			@pdf.line_width = 1.0
+			@pdf.move_to c[:middle][0] + (c[:left_side_angle][0] * first), c[:middle][1] + (c[:left_side_angle][1] * first)
+			@pdf.line_to c[:middle][0] + (c[:right_side_angle][0] * last), c[:middle][1] + (c[:right_side_angle][1] * last)
+			@pdf.stroke
+		end
 	end
 
 	def label_axis axis_info
@@ -149,8 +170,8 @@ class Spider
 		rad_step = RAD_CIRCLE / steps
 
 		start_angle = (Math::PI / 2.0)
-		angle = start_angle + (rad_step * index)
-		angle -= RAD_CIRCLE if angle > Math::PI
+		angle = start_angle - (rad_step * index)
+		angle += RAD_CIRCLE if angle < -Math::PI
 		angle
 	end
 
