@@ -13,7 +13,7 @@ ol, ul {
 }
 
 h1 {
-  background-color: black;
+  background-color: orange;
   color: white;
   padding: 10px;
   font-size: 14px;
@@ -42,7 +42,7 @@ table.division th {
 }
 table.division td .bar {
   border: 1px solid black;
-  background-color: red;
+  background-color: orange;
   float: left;
   height: 1em;
   margin-right: 5px;

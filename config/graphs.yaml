@@ -1,0 +1,44 @@
+matrix:
+  type: spider
+  title: "Spinneweb"
+  axis:
+    aut: "Autonomie"
+    klim: "Bedrijfsklimaat"
+    bel: "Beleid"
+    besl: "Besluitvorming"
+    des: "Deskundigheid"
+    hou: "Houding"
+    inv:
+      name: "Invloed"
+      min: -15
+      max: 15
+    org: "Organisatie"
+    sam: "Samenwerking"
+  data:
+    -
+      name: "Iedereen"
+      color: "FF0000"
+      values:
+        aut: 0.5
+        klim: 0.3
+        bel: 0.1
+        besl: 0.7
+        des: 0.5
+        hou: 0.9
+        inv: 5
+        org: 0.2
+        sam: 0.4
+    -
+      name: "Bouw"
+      color: "0000FF"
+      values:
+        aut: 0.65
+        klim: 0.7
+        bel: 0.2
+        besl: 0.4
+        des: 0.1
+        hou: 0.6
+        inv: -6
+        org: 0.3
+        sam: 0.1
+      
