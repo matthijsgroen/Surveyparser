@@ -10,9 +10,7 @@ class GraphRunner
 
 	def create_graphs output_filename
 		puts "Generating graphs: #{output_filename}"
-		Prawn::Document.generate(output_filename, :page_size => 'A4') do |pdf|
-			pdf.text "Grafieken generator, (c) 2010, Matthijs Groen"
-			pdf.text "Elke grafiek die wordt gegenereerd zal op de volgende pagina's verschijnen"
+		Prawn::Document.generate(output_filename, :page_size => 'A4', :skip_page_creation => true) do |pdf|
 			@configuration.each do |key, settings|
 				graph_type = settings["type"]
 				self.class.graph_writers.each do |writer|
