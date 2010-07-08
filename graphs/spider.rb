@@ -28,16 +28,19 @@ class Spider
 				:value_font_size => (axis_layout["value_font_size"] || 8.0).to_f,
 				:max_span => max_length
 			})
+		legend = graph_data["legend"] || {}
+		font_size = (legend["font_size"] || 20.0).to_f
 		graph_data["data"].each_with_index do |settings, index|
-			y = middle_y - (max_length + 30.0 + (index * 20.0))
+
+			y = middle_y - (max_length + 30.0 + (index * (font_size * 1.67)))
 			@pdf.fill_color = "000000"
 			@pdf.text_box(settings["name"],
-						 :at => [20, y],
-						 :size => 12,
+						 :at => [(font_size * 1.67), y - (font_size / 6.0)],
+						 :size => font_size,
 						 :width => 200)
 			@pdf.line_width = 0.5
 			@pdf.fill_color = settings["color"]
-			@pdf.fill_and_stroke_rectangle([4, y], 10, 10)
+			@pdf.fill_and_stroke_rectangle([4, y], font_size, font_size)
 
 			draw_values settings["values"], settings["color"]
 		end
@@ -142,7 +145,7 @@ class Spider
 			scale = (stroke * axis_info[:step].to_f) / (axis_info[:max].to_f - axis_info[:min].to_f)
 			height = (scale * ((c[:max_span] - 5.0) - (c[:margin_bottom] + 10))) + (c[:margin_bottom] + 10)
 
-			puts "#{axis_info[:max]} #{scale}"
+			#puts "#{axis_info[:max]} #{scale}"
 
 			@pdf.stroke_color axis_info[:color]
 			@pdf.line_width = axis_info[:scale_width]

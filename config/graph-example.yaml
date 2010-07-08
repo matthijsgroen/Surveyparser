@@ -1,15 +1,15 @@
 matrix:
   type: spider
   axis_layout:
-    label_font_size: 8
-    value_font_size: 5
-    width: 2
+    label_font_size: 8.0
+    value_font_size: 5.0
+    width: 2.0
     color: "006600"
     max_span: 200.0
     scale_length: 4.0
     scale_width: 0.5
   legend:
-    font_size: 12
+    font_size: 24.0
   axis:
     -
       key: aut
