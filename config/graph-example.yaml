@@ -71,17 +71,21 @@ matrix:
 trilinear:
   type: trilinear
   layout:
-    size: 200
-    label-font-size: 20
+    size: 300
+    label:
+      font-size: 18
+      align: right
     scale:
-      font-size: 15
-      steps: 10
-      color: "0000FF"
-      width: 1.0    
+      font-size: 12
+      steps: 5
+      color: "dddddd"
+      width: 0.5
     border:
-      color: "00FF00"
-      width: 3.0
-
+      color: "000000"
+      width: 2.0
+    point:
+      color: "FF0000"
+      width: 4.0
   left-axis:
     name: "Sociaal"
     alias: social

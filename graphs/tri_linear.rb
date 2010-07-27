@@ -24,7 +24,6 @@ class TriLinear
 
 		@layout = graph_data["layout"] || {}
 
-		puts @layout.inspect
 		setup_triangle middle_x, middle_y, (@layout["size"] || 300).to_i
 	 	draw_axis :left_axis, graph_data["left-axis"]["name"]
 	 	draw_axis :bottom_axis, graph_data["bottom-axis"]["name"]
@@ -78,8 +77,11 @@ class TriLinear
 	end
 
 	def draw_triangle
-		@pdf.stroke_color "000000"
-		@pdf.line_width = 2.0
+		@layout["border"] ||= {}
+
+		@pdf.stroke_color (@layout["border"]["color"] || "000000")
+		@pdf.line_width = (@layout["border"]["width"] || 2.0).to_f
+
 		@pdf.move_to *@metric_data[:point_a]
 		@pdf.line_to *@metric_data[:point_b]
 		@pdf.line_to *@metric_data[:point_c]
@@ -118,10 +120,14 @@ class TriLinear
 	}
 
 	def draw_axis axis, label
-		label_font_size = @layout["label-font-size"] || 18
+		@layout["label"] ||= {}
+		label_font_size = (@layout["label"]["font-size"] || 18).to_f
 		@layout["scale"] ||= {}
-		scale_font_size = @layout["scale"]["font-size"] || 12
-		
+		scale_font_size = (@layout["scale"]["font-size"] || 12).to_f
+		line_width = (@layout["scale"]["width"] || 0.5).to_f
+		line_color = @layout["scale"]["color"] || "dddddd"
+		alignment = (@layout["label"]["align"] || "right")
+
 		rotation = AXIS_ROTATION[axis]
 
 		correction = text_rotation_correction(rotation, 2, scale_font_size)
@@ -129,7 +135,7 @@ class TriLinear
 		step = 1.0 / amount
 
 		(amount + 1).times do |index|
-			line_on_axis axis, index * step, 0.5, "dddddd"
+			line_on_axis axis, index * step, line_width, line_color
 
 			percentage = ((index * step) - (0.05 * (index * step)))
 			percentage = 1 - percentage if axis != :bottom_axis
@@ -139,7 +145,7 @@ class TriLinear
 
 			point = percentage_on_axis(axis, percentage)
 
-			@pdf.text_box(value.to_s, {
+			@pdf.text_box("#{(value * 100.0).round}%" , {
 				:at => [point[0] + correction[0], point[1] + correction[1]],
 				:size => scale_font_size,
 				:width => 80,
@@ -157,12 +163,15 @@ class TriLinear
 			[@axis[axis][:end][0] + label_correction[0], @axis[axis][:end][1] + label_correction[1]]
 		end
 
+		align = alignment == "left" ? rotation == 0 ? :left : :right : rotation == 0 ? :right : :left
+		align = :center if alignment == "center"
+
 		@pdf.text_box(label, {
 			:at => at,
 			:size => label_font_size,
 			:width => @axis[axis][:length],
-			:height => 30,
-			:align => rotation == 0 ? :left : :right,
+			:height => label_font_size * 1.5,
+			:align => align,
 			:rotate => rotation,
 			:rotate_around => :bottom_left
 		})
@@ -170,7 +179,7 @@ class TriLinear
 
 	def text_rotation_correction(rotation, size, font_size)
 		if rotation == 0
-			[0, - size]
+			[0, - (size + 2)]
 		else
 			angle = rotation < 0 ? Math::PI / 3.0 : - (Math::PI / 3.0)
 			[(Math.sin(angle) * (size + font_size)), (Math.cos(angle) * (size + font_size))]
@@ -195,8 +204,9 @@ class TriLinear
 	end
 
 	def draw_point(left, bottom, right)
-		color = "FF0000"
-		width = 2.0
+		@layout["point"] ||= {}
+		color = @layout["point"]["color"] || "FF0000"
+		width = (@layout["point"]["width"] || 2.0).to_f
 
 		point_a = percentage_on_axis RENDER_AXIS[:bottom_axis][0], bottom
 		point_b = percentage_on_axis RENDER_AXIS[:bottom_axis][1], (1.0 - bottom)
