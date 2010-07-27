@@ -7,6 +7,7 @@ class Spider
 	end
 
 	def create_graph graph_data
+		puts "Creating spider graph"
 		raise "Can't render graph type: #{graph_data["type"]}" unless self.class.supports? graph_data["type"]
 
 		max_x = (@pdf.margin_box.right - @pdf.margin_box.left)

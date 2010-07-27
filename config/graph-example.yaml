@@ -68,4 +68,38 @@ matrix:
         inv: -6
         org: 0.3
         sam: 0.1
+trilinear:
+  type: trilinear
+  layout:
+    size: 200
+    label-font-size: 20
+    scale:
+      font-size: 15
+      steps: 10
+      color: "0000FF"
+      width: 1.0    
+    border:
+      color: "00FF00"
+      width: 3.0
+
+  left-axis:
+    name: "Sociaal"
+    alias: social
+  right-axis:
+    name: "Economie"
+    alias: economy
+  bottom-axis:
+    name: "Ecologie"
+    alias: ecology
+  data:
+    -
+      social: 0.3333
+      economy: 0.3333
+      ecology: 0.3334
+    -
+      social: 0.1
+      economy: 0.6
+      ecology: 0.3
       
+
+  
