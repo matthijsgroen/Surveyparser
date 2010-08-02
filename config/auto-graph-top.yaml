@@ -1,0 +1,27 @@
+  type: trilinear
+  layout:
+    size: 300
+    label:
+      font-size: 18
+      align: right
+    scale:
+      font-size: 12
+      steps: 5
+      color: "dddddd"
+      width: 0.5
+    border:
+      color: "000000"
+      width: 2.0
+    point:
+      color: "FF0000"
+      width: 4.0
+  left-axis:
+    name: "Sociaal"
+    alias: social
+  right-axis:
+    name: "Economie"
+    alias: economy
+  bottom-axis:
+    name: "Ecologie"
+    alias: ecology
+  data:

@@ -61,3 +61,16 @@ parser.run_with_filter "IP - RO+Legal - totaal ingevuld" do |filter|
 end
 
 parser.write_output
+
+parser.write_tri_linear_output "Groep", "config/auto-graph-top.yaml", {
+		:social => "BESLG_1 / 15.0",
+		:economy => "BESLG_2 / 15.0",
+		:ecology => "BESLG_3 / 15.0"
+	}
+
+parser.write_tri_linear_output "Ik", "config/auto-graph-top.yaml", {
+		:social => "BESLI_1 / 15.0",
+		:economy => "BESLI_2 / 15.0",
+		:ecology => "BESLI_3 / 15.0"
+	}
+

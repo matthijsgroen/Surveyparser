@@ -11,6 +11,10 @@ class TriLinear
 		puts "Creating trilinear diagram"
 		raise "Can't render graph type: #{graph_data["type"]}" unless self.class.supports? graph_data["type"]
 
+		# reset colors
+		@pdf.stroke_color "000000"
+		@pdf.fill_color "000000"
+
 		max_x = (@pdf.margin_box.right - @pdf.margin_box.left)
 		max_y = (@pdf.margin_box.top - @pdf.margin_box.bottom)
 		middle_x = max_x / 2.0

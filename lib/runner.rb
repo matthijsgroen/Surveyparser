@@ -42,6 +42,84 @@ class Runner
 		end
 	end
 
+	def write_tri_linear_output name, template_filename, formulas
+		value_mapper = ValueMapping.new @value_mapping
+
+		filename = convert_to_filename(name) + ".yaml"
+		puts "Writing: #{filename} for trilinear diagram"
+
+		File.open filename, "w" do |output|
+			@target_groups.each do |target_group|
+				output.puts " "
+				output.puts "# Trilineair diagram voor #{target_group.title}"
+				output.puts "#{convert_to_filename(target_group.title)}:"
+
+				File.open template_filename, "r" do |template_input|
+					template_input.each do |line|
+						output.puts line
+					end
+				end
+
+				participants = []
+				target_group.scores.each do |score|
+					next if participants.include? score[:participant]
+					participants << score[:participant]
+
+					calculation_data = score[:question_data][:row_values].merge :value => nil
+
+					score[:participant][:question_data].each do |key, data|
+						new_keys = value_mapper.map key.upcase
+						if new_keys
+							new_keys.each do |new_key|
+								if data.to_i.to_s == data
+									calculation_data[new_key] = data.to_i
+								elsif data.to_f.to_s == data
+									calculation_data[new_key] = data.to_f
+								elsif "%.2f" % data.to_f == data
+									calculation_data[new_key] = data.to_f
+								else
+									calculation_data[new_key] = data
+								end
+							end
+						end
+					end
+
+
+					results = {}
+					sum = 0
+					formulas.each do |key, formula_string|
+						formula = Formula.new formula_string
+						result = formula.call calculation_data
+						sum += (result || 0)
+						results[key] = result
+					end
+
+					if sum == 1
+						output.puts "    -"
+						results.each do |key, value|
+							output.puts "      #{key}: #{value || 0}"
+						end
+					end
+				end
+			end
+		end
+	end
+
+	private
+
+	def convert_to_filename text
+		text.downcase.
+			gsub(/[éëèẽê]/i, 'e').
+			gsub(/[íĩìï]/i, 'i').
+			gsub(/[öóòõ]/i, 'o').
+			gsub(/[ç]/i, 'c').
+			gsub(/[üúùũ]/i, 'u').
+			gsub(/[äáàã]/i, 'a').
+			gsub(/[ß]/i, 'b').
+			gsub(/[^a-z0-9()-]+/i, '_').
+			gsub(/(.*)_$/, '\1')
+	end
+
 	class FilterReader
 
 		def initialize
