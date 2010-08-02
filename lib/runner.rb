@@ -42,10 +42,9 @@ class Runner
 		end
 	end
 
-	def write_tri_linear_output name, template_filename, formulas
+	def write_tri_linear_output filename, template_filename, formulas
 		value_mapper = ValueMapping.new @value_mapping
 
-		filename = convert_to_filename(name) + ".yaml"
 		puts "Writing: #{filename} for trilinear diagram"
 
 		File.open filename, "w" do |output|
