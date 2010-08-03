@@ -14,7 +14,7 @@
       width: 2.0
     point:
       color: "FF0000"
-      width: 4.0
+      width: 3.0
   left-axis:
     name: "Sociaal"
     alias: social

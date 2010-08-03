@@ -8,17 +8,23 @@ class TriLinear
 	BIG_ANGLE = Math::PI / 3.0
 
 	def create_graph graph_data
-		puts "Creating trilinear diagram"
+		puts "Creating trilinear diagram: #{graph_data["title"]}"
 		raise "Can't render graph type: #{graph_data["type"]}" unless self.class.supports? graph_data["type"]
-
-		# reset colors
-		@pdf.stroke_color "000000"
-		@pdf.fill_color "000000"
 
 		max_x = (@pdf.margin_box.right - @pdf.margin_box.left)
 		max_y = (@pdf.margin_box.top - @pdf.margin_box.bottom)
 		middle_x = max_x / 2.0
-		middle_y = max_y / 2.0
+		middle_y = (max_y / 2.0) - 30
+
+		# reset colors
+		@pdf.stroke_color "000000"
+		@pdf.fill_color "000000"
+		@pdf.text_box(graph_data["title"] || "", {
+			:at => [0, max_y - 20],
+			:width => max_x,
+			:align => :center,
+			:size => 10
+		})
 
 		@axis_names = {
 			:left_axis => graph_data["left-axis"]["alias"],
@@ -34,15 +40,24 @@ class TriLinear
 	 	draw_axis :right_axis, graph_data["right-axis"]["name"]
 		draw_triangle
 
+		dots = { }
 		graph_data["data"].each_with_index do |data_point, index|
 			points = [data_point[@axis_names[:left_axis]].to_f,
 								data_point[@axis_names[:bottom_axis]].to_f,
 								data_point[@axis_names[:right_axis]].to_f]
+
 			points_sum = ((points[0] + points[1] + points[2]) * 1000.0).round
 			raise "points in entry #{index + 1} (#{points * ", "}) are not 1.0" unless points_sum == 1000
-
-			draw_point(*points)
+			dots[points] ||= 0
+			dots[points] += 1
 		end
+		puts "plotting #{graph_data["data"].length} dots, #{dots.length} unique locations."
+
+		dots.each do |coord, amount|
+			res = coord + [amount]
+			draw_point(*res)
+		end
+
 	end
 	
 	def self.supports? type
@@ -83,7 +98,7 @@ class TriLinear
 	def draw_triangle
 		@layout["border"] ||= {}
 
-		@pdf.stroke_color (@layout["border"]["color"] || "000000")
+		@pdf.stroke_color(@layout["border"]["color"] || "000000")
 		@pdf.line_width = (@layout["border"]["width"] || 2.0).to_f
 
 		@pdf.move_to *@metric_data[:point_a]
@@ -207,10 +222,11 @@ class TriLinear
 		@pdf.stroke
 	end
 
-	def draw_point(left, bottom, right)
+	def draw_point(left, bottom, right, weight)
 		@layout["point"] ||= {}
 		color = @layout["point"]["color"] || "FF0000"
 		width = (@layout["point"]["width"] || 2.0).to_f
+		width = width * (1.1 * weight)
 
 		point_a = percentage_on_axis RENDER_AXIS[:bottom_axis][0], bottom
 		point_b = percentage_on_axis RENDER_AXIS[:bottom_axis][1], (1.0 - bottom)

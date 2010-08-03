@@ -52,7 +52,8 @@ class Runner
 				output.puts " "
 				output.puts "# Trilineair diagram voor #{target_group.title}"
 				output.puts "#{convert_to_filename(target_group.title)}:"
-
+				output.puts "  title: \"#{target_group.title}\""
+				
 				File.open template_filename, "r" do |template_input|
 					template_input.each do |line|
 						output.puts line
@@ -93,7 +94,7 @@ class Runner
 						results[key] = result
 					end
 
-					if sum == 1
+					if sum != 0
 						output.puts "    -"
 						results.each do |key, value|
 							output.puts "      #{key}: #{value || 0}"
