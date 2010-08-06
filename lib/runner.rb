@@ -1,9 +1,10 @@
-require 'lib/formula.rb'
-require 'lib/scoring_configuration.rb'
-require 'lib/scoring_result.rb'
-require 'lib/value_mapping.rb'
-require 'lib/result_parser.rb'
-require 'lib/html_writer.rb'
+require File.dirname(__FILE__) + '/formula.rb'
+require File.dirname(__FILE__) + '/scoring_configuration.rb'
+require File.dirname(__FILE__) + '/scoring_result.rb'
+require File.dirname(__FILE__) + '/value_mapping.rb'
+require File.dirname(__FILE__) + '/result_parser.rb'
+require File.dirname(__FILE__) + '/html_writer.rb'
+require File.dirname(__FILE__) + '/matrix_result_pdf_writer'
 require 'pp'
 
 class Runner
@@ -105,7 +106,33 @@ class Runner
 		end
 	end
 
+    def write_output_pdf(output_filename, options)
+      write_groups = select_target_groups options[:filter]
+      MatrixResultPdfWriter.new output_filename, options do |writer|
+        write_groups.each do |group|
+          puts "writing pdf output for \"#{group.title}\""
+          writer.write_group group
+        end
+      end
+    end
+
 	private
+
+    def select_target_groups(filter = nil)
+      filter ||= :all
+      write_groups = []
+      if filter == :all
+        write_groups = @target_groups
+      else
+        filter = [filter] if filter.is_a? String
+        filter.each do |group_name|
+          @target_groups.each do |target_group|
+            write_groups << target_group if target_group.title == group_name
+          end
+        end
+      end
+      write_groups      
+    end
 
 	def convert_to_filename text
 		text.downcase.
