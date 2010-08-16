@@ -23,7 +23,7 @@ class ResultParser
 	# 17 "IP";
 	# 18 "Geolocatie (via IP)";
 
-	META_DATA_BOUNDARY = 18
+	META_DATA_BOUNDARY = 17
 	
 	def initialize scoring_filename, mapping_filename
 		@value_mapping = ValueMapping.new mapping_filename
