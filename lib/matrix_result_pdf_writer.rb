@@ -46,14 +46,17 @@ class MatrixResultPdfWriter
         bars = []
 
         pdf.bounding_box([0, pdf.y - pdf.page.margins[:top]], :width => @options[:text_width]) do
-          bars << create_bar(matrix_data, :width => @options[:main_bar_width])
+          bars << create_bar(matrix_data, :width => @options[:main_bar_width], :indicators_width => @options[:main_bar_width])
           pdf.text matrix_title, :style => :bold, :size => @options[:font_size]
           pdf.move_down 4
 
           pdf.indent(@options[:indent]) do
             matrix_data[:indicators].each do |indicator_title, indicator_data|
               next if indicator_data[:progress] == :na
-              bars << create_bar(indicator_data, :width => @options[:sub_bar_width])          
+              next if indicator_data[:conversion] == :na 
+							bar_width = @options[:main_bar_width] * indicator_data[:conversion]
+							puts bar_width
+							bars << create_bar(indicator_data, :width => bar_width, :indicators_width => @options[:main_bar_width])
               pdf.text indicator_title, :style => :normal, :size => @options[:font_size]
               pdf.move_down 4
             end
@@ -67,18 +70,34 @@ class MatrixResultPdfWriter
       p = bar[:data][:progress]
 
       total_width = bar[:options][:width]
+			bar_start = @options[:text_width] + 4
+			text_start = @options[:text_width] + 4 + total_width
 
-      pdf.fill_color @options[:bar_color]
+			pdf.fill_color @options[:bar_color]
+			pdf.stroke_color @options[:bar_color]
 
-      percentage = (p[:progress] - p[:min]) / (p[:max] - p[:min])
+			bar_top = bar[:y_pos] - pdf.page.margins[:top]
+			parts = 4
+			(parts + 1).times do |index|
+				x = bar_start + ((bar[:options][:indicators_width] / parts) * index)
+				pdf.stroke_line x, bar_top + 2, x, bar_top - @options[:font_size] - 2
+			end
+
+			if total_width < 0
+				bar_start += bar[:options][:indicators_width]
+				text_start = bar_start 
+			end
+
+
+			percentage = (p[:progress] - p[:min]) / (p[:max] - p[:min])
       bar_width = percentage * total_width
-      pdf.fill_rectangle [@options[:text_width] + 4, bar[:y_pos] - pdf.page.margins[:top]], bar_width, @options[:font_size]
+      pdf.fill_rectangle [bar_start, bar_top], bar_width, @options[:font_size]
       pdf.stroke_color @options[:font_color]
-      pdf.stroke_rectangle [@options[:text_width] + 4, bar[:y_pos] - pdf.page.margins[:top]], total_width, @options[:font_size]
+      pdf.stroke_rectangle [bar_start, bar_top], total_width, @options[:font_size]
       pdf.fill_color @options[:font_color]
       pdf.text_box "#{(percentage * 100.0).round}%", 
         :width => @options[:font_size] * "100%".length * 0.8,
-        :at => [@options[:text_width] + 4 + total_width, bar[:y_pos] - pdf.page.margins[:top]],
+        :at => [text_start, bar_top],
         :align => :right,
         :size => @options[:font_size]
 
