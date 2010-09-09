@@ -68,7 +68,9 @@ parser.write_output_pdf "matrix_facetten.pdf",
         :text_width => 100,
         :font_color => "000000",
         :bar_color => "FAC090",
-        :main_bar_width => 100,
+        :negative_bar_color => "303030", # new!
+				:dividers => 4, # new!
+				:main_bar_width => 100,
         :sub_bar_width => 30,
         :indent => 10,
         :filter => "totaal ingevuld"

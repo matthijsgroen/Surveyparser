@@ -28,9 +28,11 @@ class MatrixResultPdfWriter
               :text_width => 200,
               :font_color => "000000",
               :bar_color => "808080",
+							:negative_bar_color => "303030",
               :main_bar_width => 100,
               :indent => 30,
-              :sub_bar_width => 30
+              :sub_bar_width => 30,
+							:dividers => 4
       }.merge options
     end
     attr_reader :pdf
@@ -44,9 +46,11 @@ class MatrixResultPdfWriter
         pdf.move_down 40
 
         bars = []
-
-        pdf.bounding_box([0, pdf.y - pdf.page.margins[:top]], :width => @options[:text_width]) do
-          bars << create_bar(matrix_data, :width => @options[:main_bar_width], :indicators_width => @options[:main_bar_width])
+				parts = @options[:dividers]
+				box_top = pdf.y - pdf.page.margins[:top]
+        pdf.bounding_box([0, box_top], :width => @options[:text_width]) do
+					pdf.move_down @options[:font_size] * 1.3
+					bars << create_bar(matrix_data, :width => @options[:main_bar_width], :indicators_width => @options[:main_bar_width])
           pdf.text matrix_title, :style => :bold, :size => @options[:font_size]
           pdf.move_down 4
 
@@ -62,32 +66,57 @@ class MatrixResultPdfWriter
             end
           end
         end
-        bars.each { |bar| generate_bar bar }
+				write_percentages parts, :y => box_top if parts > 0
+        bars.each { |bar| generate_bar bar, parts }
       end
     end
 
-    def generate_bar(bar)
+		def write_percentages(amount = 4, options = {})
+			y_pos = pdf.y
+			part = 1.0 / amount
+
+			y_pos = options[:y]
+			left = @options[:text_width] #+ 4
+			width = @options[:main_bar_width]
+			(amount + 1).times do |index|
+
+				pdf.stroke_color @options[:font_color]
+				pdf.fill_color @options[:font_color]
+
+				pdf.text_box "#{(part * index * 100.0).round}%",
+					:width => @options[:font_size] * "100%".length * 0.8,
+					:at => [left + (width * part * index), y_pos],
+					:align => :left,
+					:size => @options[:font_size]
+			end
+		end
+
+    def generate_bar(bar, parts = 4)
       p = bar[:data][:progress]
 
       total_width = bar[:options][:width]
 			bar_start = @options[:text_width] + 4
-			text_start = @options[:text_width] + 4 + total_width
 
 			pdf.fill_color @options[:bar_color]
 			pdf.stroke_color @options[:bar_color]
-
 			bar_top = bar[:y_pos] - pdf.page.margins[:top]
-			parts = 4
+
 			(parts + 1).times do |index|
 				x = bar_start + ((bar[:options][:indicators_width] / parts) * index)
 				pdf.stroke_line x, bar_top + 2, x, bar_top - @options[:font_size] - 2
-			end
+			end if parts > 0
 
 			if total_width < 0
-				bar_start += bar[:options][:indicators_width]
-				text_start = bar_start 
+				total_width *= -1
+				p[:min] *= -1
+				p[:max] *= -1
+				p[:progress] *= -1
+				pdf.fill_color @options[:negative_bar_color]
+				pdf.stroke_color @options[:negative_bar_color]
+				#bar_start += bar[:options][:indicators_width]
+				#text_start = bar_start
 			end
-
+			text_start = @options[:text_width] + 4 + total_width
 
 			percentage = (p[:progress] - p[:min]) / (p[:max] - p[:min])
       bar_width = percentage * total_width
